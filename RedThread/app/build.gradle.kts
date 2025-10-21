@@ -57,12 +57,33 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-            //librerias nuevas
-            implementation("androidx.navigation:navigation-compose:2.9.5")
-            implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
-            implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-            // Material icons (necesarios para Visibility / VisibilityOff)
-            implementation("androidx.compose.material:material-icons-extended")
-    //librerias sacadas sobre el trabajo realizado en clases
+    //librerias nuevas
+    implementation("androidx.navigation:navigation-compose:2.9.5")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    // Material icons (necesarios para Visibility / VisibilityOff)
+    implementation("androidx.compose.material:material-icons-extended")
+    // compose bom para manejar versiones alineadas
+    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
+
+    // compose ui y material3
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.compose.material3:material3")
+
+    // navigation compose
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+
+    // lifecycle + viewmodel para compose
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
+    // coroutines (util para viewmodel)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // iconos de material para los placeholders y la bottom bar
+    implementation("androidx.compose.material:material-icons-extended")
+
 }
