@@ -41,4 +41,11 @@ fun validateStrongPassword(pass: String): String? {                    // Requis
 fun validateConfirm(pass: String, confirm: String): String? {          // Confirmación de contraseña
     if (confirm.isBlank()) return "Confirma tu contraseña"             // No vacío
     return if (pass != confirm) "Las contraseñas no coinciden" else null // Deben ser iguales
+
+
+
+
+
+
+
 }
