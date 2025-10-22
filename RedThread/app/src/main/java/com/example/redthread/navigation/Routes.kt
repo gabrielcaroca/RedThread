@@ -5,7 +5,7 @@ sealed class Route(val path: String) {
     data object Home : Route("home") //1
     data object Login : Route("login") //2
     data object Register : Route("register")//3
-    data object Carro : Route("carro")//4
+    data object Carrito : Route("carro")//4
     data object DetalleProducto : Route("detalle_producto") //5
     data object Perfil : Route("perfil") // 6
     data object Checkout : Route("pago") // 7
