@@ -44,7 +44,7 @@ fun AppTopBar(
             Image(
                 painter = painterResource(id = logoId),
                 contentDescription = "logo red thread",
-                modifier = Modifier.height(28.dp),
+                modifier = Modifier.height(95.dp),
                 contentScale = ContentScale.Fit
             )
         } else {
