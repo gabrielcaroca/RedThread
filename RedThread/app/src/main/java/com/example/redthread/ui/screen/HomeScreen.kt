@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import com.example.redthread.ui.components.AppTopBar
 import com.example.redthread.ui.theme.AccentRed
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.CardGray
@@ -73,15 +74,24 @@ fun HomeScreen(
     val productos by viewModel.productos.collectAsState()
     val filtrados = productos.filter { filtro == Filtro.TODOS || it.target == filtro }
 
-    Scaffold(
-        topBar = { TopBar(onCarritoClick) },
-        containerColor = Black
-    ) { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Black)
+    ) {
+        // Barra superior global
+        AppTopBar(
+            onHomeClick = { /* navegación a Home */ },
+            onPerfilClick = { /* navegación a Perfil */ },
+            onCarritoClick = onCarritoClick
+        )
+
+        // Contenido principal
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(Black)
-                .padding(padding)
+                .padding(top = 8.dp)
         ) {
             TabsAnimated(
                 selected = filtro,
@@ -101,46 +111,6 @@ fun HomeScreen(
                     ProductCard(producto = p, onClick = { onProductoClick(p) })
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TopBar(onCarritoClick: () -> Unit) {
-    // usa logo_redthread si existe, sino muestra texto "red thread"
-    val ctx = LocalContext.current
-    val logoId = remember { ctx.safeDrawableId("logo_redthread") }
-
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(Black)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (logoId != 0) {
-            androidx.compose.foundation.Image(
-                painter = painterResource(id = logoId),
-                contentDescription = "logo red thread",
-                modifier = Modifier.height(28.dp),
-                contentScale = ContentScale.Fit
-            )
-        } else {
-            Text(
-                text = "red thread",
-                color = TextPrimary,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.2.sp
-            )
-        }
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onCarritoClick) {
-            Icon(
-                imageVector = Icons.Outlined.ShoppingCart,
-                contentDescription = "carrito",
-                tint = TextPrimary
-            )
         }
     }
 }
