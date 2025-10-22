@@ -53,6 +53,4 @@ class HomeViewModel : ViewModel() {
         )
     }
 
-    // si luego quieres filtrar desde aqui, puedes agregar una funcion:
-    // fun setProductos(list: List<ProductoUi>) { _productos.value = list }
 }

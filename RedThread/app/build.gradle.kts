@@ -88,14 +88,17 @@ dependencies {
     // iconos de material para los placeholders y la bottom bar
     implementation("androidx.compose.material:material-icons-extended")
     // Room (SQLite) - runtime y extensiones KTX
-    implementation("androidx.room:room-runtime:2.6.1")    // <-- NUEVO
-    implementation("androidx.room:room-ktx:2.6.1")        // <-- NUEVO
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
 
     // Compilador de Room vía KSP
-    ksp("androidx.room:room-compiler:2.6.1")               // <-- NUEVO
+    ksp("androidx.room:room-compiler:2.6.1")
 
     //cargar imagenes con compose
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.google.android.material:material:1.12.0")
 
 
 }

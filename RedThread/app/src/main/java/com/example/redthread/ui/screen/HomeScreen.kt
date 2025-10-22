@@ -1,6 +1,5 @@
 package com.example.redthread.ui.screen
 
-// imports: no pongas nada entre package e imports
 import android.content.res.Resources
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -49,7 +48,6 @@ import com.example.redthread.ui.theme.TextPrimary
 import com.example.redthread.ui.theme.TextSecondary
 import com.example.redthread.ui.viewmodel.HomeViewModel
 
-// filtro simple para tabs
 enum class Filtro { TODOS, HOMBRES, MUJERES }
 
 // modelo de item de la grilla
@@ -57,7 +55,7 @@ data class ProductoUi(
     val id: Int,
     val nombre: String,
     val precio: String,
-    val categoria: String, // polera | chaqueta | pantalon | zapatillas
+    val categoria: String, // polera | chaqueta | pantalon | zapatillas | accesorio
     val target: Filtro = Filtro.TODOS
 )
 
@@ -122,9 +120,9 @@ private fun TabsAnimated(
 ) {
     // definimos las 3 pestañas y su orden
     val items = listOf(
-        Filtro.TODOS to "para todos",
-        Filtro.HOMBRES to "hombres",
-        Filtro.MUJERES to "mujeres"
+        Filtro.TODOS to "Principal",
+        Filtro.HOMBRES to "Hombres",
+        Filtro.MUJERES to "Mujeres"
     )
 
     // ancho fijo por tab para facilitar la animacion del indicador
@@ -139,7 +137,7 @@ private fun TabsAnimated(
         label = "tabOffset"
     )
 
-    // animamos el ancho (por si luego cambias a tabs scrollables)
+    // animacion del ancho (por si luego cambias a tabs scrollables)
     val widthAnim by animateDpAsState(
         targetValue = tabWidth,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
@@ -199,6 +197,7 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
         "chaqueta" -> "ph_chaqueta"
         "pantalon" -> "ph_pantalon"
         "zapatillas" -> "ph_zapatillas"
+        "accesorio" -> "ph_accesorio"
         else -> "ph_polera"
     }
     val imgId = remember(drawableName) { ctx.safeDrawableId(drawableName) }
@@ -227,7 +226,7 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // fallback simple con emoji para no romper si aun no hay imagen
+                // por si no hay imagen carga un emoji
                 val emoji = when (producto.categoria) {
                     "polera" -> "👕"
                     "chaqueta" -> "🧥"
