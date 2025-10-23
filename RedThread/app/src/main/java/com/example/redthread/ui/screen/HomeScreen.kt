@@ -62,6 +62,7 @@ data class ProductoUi(
 fun HomeScreen(
     onProductoClick: (ProductoUi) -> Unit = {},
     onCarritoClick: () -> Unit = {},
+    onPerfilClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     // estado de tab seleccionado
@@ -79,7 +80,7 @@ fun HomeScreen(
         // Barra superior global
         AppTopBar(
             onLogoClick = { /* navegación a Home */ },
-            onPerfilClick = { /* navegación a Perfil */ },
+            onPerfilClick = onPerfilClick,
             onCarritoClick = onCarritoClick
         )
 
