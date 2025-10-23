@@ -28,29 +28,31 @@ fun PantallaDespachoVm(
             avisos.showSnackbar(it)
             vm.limpiarMensaje()
         }
-    PantallaDespacho(
-        filtro = estado.filtro,
-        cargando = estado.cargando,
-        pedidos = estado.pedidos,
-        alCambiarFiltro = vm::alCambiarFiltro,
-        alActualizar = vm::actualizar,
-        alAvanzarEstado = vm::avanzarEstado,
-        alMarcarEntregado = vm::marcarEntregado,
-        alCancelar = vm::cancelar,
-        alAbrirDetalle = alAbrirDetalle,
-        avisos = avisos
+        PantallaDespacho(
+            filtro = estado.filtro,
+            cargando = estado.cargando,
+            pedidos = estado.pedidos,
+            alCambiarFiltro = vm::alCambiarFiltro,
+            alActualizar = vm::actualizar,
+            alAvanzarEstado = vm::avanzarEstado,
+            alMarcarEntregado = vm::marcarEntregado,
+            alCancelar = vm::cancelar,
+            alAbrirDetalle = alAbrirDetalle,
+            avisos = avisos
+        )
+    }
+    data class PedidoUi(
+        val id: String,
+        val codigo: String,
+        val estado: String,           // "Preparando" | "En tránsito" | "Entregado" | "Cancelado"
+        val actualizando: Boolean = false
     )
-}
-data class PedidoUi(
-    val id: String,
-    val codigo: String,
-    val estado: String,           // "Preparando" | "En tránsito" | "Entregado" | "Cancelado"
-    val actualizando: Boolean = false
-)
-data class EstadoDespacho(
-    val filtro: String = "",
-    val cargando: Boolean = false,
-    val mensaje: String? = null,
-    val pedidos: List<PedidoUi> = emptyList()
-)
 
+    data class EstadoDespacho(
+        val filtro: String = "",
+        val cargando: Boolean = false,
+        val mensaje: String? = null,
+        val pedidos: List<PedidoUi> = emptyList()
+    )
+
+}

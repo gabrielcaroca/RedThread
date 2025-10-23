@@ -40,7 +40,6 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import com.example.redthread.ui.components.AppTopBar
-import com.example.redthread.ui.theme.AccentRed
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.CardGray
 import com.example.redthread.ui.theme.CardGrayElevated
@@ -79,7 +78,7 @@ fun HomeScreen(
     ) {
         // Barra superior global
         AppTopBar(
-            onHomeClick = { /* navegación a Home */ },
+            onLogoClick = { /* navegación a Home */ },
             onPerfilClick = { /* navegación a Perfil */ },
             onCarritoClick = onCarritoClick
         )
