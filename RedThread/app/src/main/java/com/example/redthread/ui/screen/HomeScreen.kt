@@ -6,6 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,17 +14,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,8 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
-import com.example.redthread.ui.components.AppTopBar
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.CardGray
 import com.example.redthread.ui.theme.CardGrayElevated
@@ -49,26 +44,23 @@ import com.example.redthread.ui.viewmodel.HomeViewModel
 
 enum class Filtro { TODOS, HOMBRES, MUJERES }
 
-// modelo de item de la grilla
 data class ProductoUi(
     val id: Int,
     val nombre: String,
     val precio: String,
-    val categoria: String, // polera | chaqueta | pantalon | zapatillas | accesorio
+    val categoria: String,
     val target: Filtro = Filtro.TODOS
 )
 
 @Composable
 fun HomeScreen(
     onProductoClick: (ProductoUi) -> Unit = {},
-    onCarritoClick: () -> Unit = {},
+    onCarritoClick: () -> Unit = {},   // se mantiene la firma, aunque el top bar vive afuera
     onPerfilClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
-    // estado de tab seleccionado
     var filtro by remember { mutableStateOf(Filtro.TODOS) }
 
-    // consumimos productos desde el vm
     val productos by viewModel.productos.collectAsState()
     val filtrados = productos.filter { filtro == Filtro.TODOS || it.target == filtro }
 
@@ -76,38 +68,24 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Black)
+            .padding(top = 0.dp) // el padding del top bar ya lo maneja el Scaffold de AppNavGraph
     ) {
-        // Barra superior global
-        AppTopBar(
-            onLogoClick = { /* navegación a Home */ },
-            onPerfilClick = onPerfilClick,
-            onCarritoClick = onCarritoClick
+        TabsAnimated(
+            selected = filtro,
+            onSelect = { filtro = it }
         )
 
-        // Contenido principal
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Black)
-                .padding(top = 8.dp)
+        Spacer(Modifier.height(8.dp))
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.weight(1f)
         ) {
-            TabsAnimated(
-                selected = filtro,
-                onSelect = { filtro = it }
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(filtrados, key = { it.id }) { p ->
-                    ProductCard(producto = p, onClick = { onProductoClick(p) })
-                }
+            items(filtrados, key = { it.id }) { p ->
+                ProductCard(producto = p, onClick = { onProductoClick(p) })
             }
         }
     }
@@ -118,18 +96,15 @@ private fun TabsAnimated(
     selected: Filtro,
     onSelect: (Filtro) -> Unit
 ) {
-    // definimos las 3 pestañas y su orden
     val items = listOf(
         Filtro.TODOS to "Principal",
         Filtro.HOMBRES to "Hombres",
         Filtro.MUJERES to "Mujeres"
     )
 
-    // ancho fijo por tab para facilitar la animacion del indicador
     val tabWidth: Dp = 100.dp
     val selectedIndex = items.indexOfFirst { it.first == selected }.coerceAtLeast(0)
 
-    // animamos la posicion x del indicador
     val targetOffset = (selectedIndex * tabWidth.value)
     val offsetAnim by animateFloatAsState(
         targetValue = targetOffset,
@@ -137,7 +112,6 @@ private fun TabsAnimated(
         label = "tabOffset"
     )
 
-    // animacion del ancho (por si luego cambias a tabs scrollables)
     val widthAnim by animateDpAsState(
         targetValue = tabWidth,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
@@ -160,7 +134,6 @@ private fun TabsAnimated(
                         .clickable { onSelect(pair.first) }
                         .padding(vertical = 8.dp)
                 ) {
-                    // crossfade para el color del texto
                     Crossfade(targetState = isSelected, label = "tabText") { sel ->
                         Text(
                             text = pair.second,
@@ -174,13 +147,12 @@ private fun TabsAnimated(
             }
         }
 
-        // indicador deslizante bajo el tab activo
         Box(
             Modifier
                 .padding(horizontal = 20.dp)
                 .height(2.dp)
                 .width(widthAnim)
-                .offset(x = Dp(offsetAnim))
+                .offset(x = offsetAnim.dp)
                 .background(Color.White)
                 .zIndex(1f)
         )
@@ -190,8 +162,6 @@ private fun TabsAnimated(
 @Composable
 private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
     val ctx = LocalContext.current
-
-    // resolvemos el nombre del drawable si existe, sino mostramos emoji
     val drawableName = when (producto.categoria) {
         "polera" -> "ph_polera"
         "chaqueta" -> "ph_chaqueta"
@@ -216,7 +186,7 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             if (imgId != 0) {
-                androidx.compose.foundation.Image(
+                Image(
                     painter = painterResource(id = imgId),
                     contentDescription = producto.nombre,
                     modifier = Modifier
@@ -226,7 +196,6 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // por si no hay imagen carga un emoji
                 val emoji = when (producto.categoria) {
                     "polera" -> "👕"
                     "chaqueta" -> "🧥"
@@ -257,18 +226,10 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
     }
 }
 
-// --------------------------------------------------------
-// helper: obtener id de drawable por nombre, 0 si no existe
-// esto evita errores de compilacion cuando aun no subes las imagenes
-// --------------------------------------------------------
+// helpers
 private fun Resources.safeGetIdentifier(name: String, defType: String, defPackage: String): Int {
-    return try {
-        getIdentifier(name, defType, defPackage)
-    } catch (_: Exception) {
-        0
-    }
+    return try { getIdentifier(name, defType, defPackage) } catch (_: Exception) { 0 }
 }
-
 private fun android.content.Context.safeDrawableId(name: String): Int {
     return resources.safeGetIdentifier(name, "drawable", packageName)
 }

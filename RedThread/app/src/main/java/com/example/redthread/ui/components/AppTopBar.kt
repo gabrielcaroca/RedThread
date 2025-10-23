@@ -7,21 +7,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.statusBarsPadding
 import com.example.redthread.ui.theme.Black
@@ -40,38 +34,32 @@ fun AppTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Black)
-            .statusBarsPadding()                 // evita que quede bajo la status bar
+            .statusBarsPadding() // evita solaparse con la status bar
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp)          // altura minima garantizada del top bar
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .height(56.dp) // altura estándar de top bar
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // logo clickeable (o texto fallback)
+            // Logo clickeable (sin fallback de texto)
             if (logoId != 0) {
                 Image(
                     painter = painterResource(id = logoId),
-                    contentDescription = "Logo RedThread",
+                    contentDescription = null,
                     modifier = Modifier
-                        .height(70.dp)
+                        .height(28.dp) // tamaño visual agradable
                         .clickable { onLogoClick() },
                     contentScale = ContentScale.Fit
                 )
             } else {
-                Text(
-                    text = "RedThread",
-                    color = TextPrimary,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { onLogoClick() }
-                )
+                // Mantén el layout estable si aún no subes el drawable
+                Spacer(Modifier.width(120.dp).height(28.dp))
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // boton perfil
             IconButton(onClick = onPerfilClick) {
                 Icon(
                     imageVector = Icons.Outlined.Person,
@@ -79,8 +67,6 @@ fun AppTopBar(
                     tint = TextPrimary
                 )
             }
-
-            // boton carrito
             IconButton(onClick = onCarritoClick) {
                 Icon(
                     imageVector = Icons.Outlined.ShoppingCart,
@@ -90,12 +76,10 @@ fun AppTopBar(
             }
         }
 
-        // divisor sutil para separar de las tabs
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color(0x22FFFFFF))
+        Divider(
+            modifier = Modifier.fillMaxWidth(),
+            color = TextPrimary.copy(alpha = 0.15f), // separador sutil
+            thickness = 1.dp
         )
     }
 }
