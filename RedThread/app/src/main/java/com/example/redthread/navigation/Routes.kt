@@ -9,6 +9,7 @@ sealed class Route(val path: String) {
     data object DetalleProducto : Route("detalle_producto") //5
     data object Perfil : Route("perfil") // 6
     data object Checkout : Route("pago") // 7
+    data object VistaModerador : Route("moderador") //8
 }
 
 /*
@@ -20,4 +21,5 @@ sealed class Route(val path: String) {
 * 5. DetalleProducto = Información de un producto seleccionado
 * 6. Perfil = Datos y configuración del usuario
 * 7. Checkout = Confirmación y pago de la compra
+* 8. VistaModerador = Pantalla de administrador
 */

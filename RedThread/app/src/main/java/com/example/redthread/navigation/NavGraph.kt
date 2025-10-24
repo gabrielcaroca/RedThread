@@ -16,6 +16,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.redthread.ui.components.AppTopBar
+import com.example.redthread.ui.screen.DeveloperScreen
 import com.example.redthread.ui.screen.HomeScreen
 import com.example.redthread.ui.screen.LoginScreenVm
 import com.example.redthread.ui.screen.RegisterScreenVm
@@ -122,6 +123,10 @@ fun AppNavGraph(
                     Text(text = "Carrito", color = TextPrimary)
                 }
             }
+            composable(Route.VistaModerador.path) {
+                DeveloperScreen(vm = androidx.lifecycle.viewmodel.compose.viewModel())
+            }
+
         }
     }
 }
