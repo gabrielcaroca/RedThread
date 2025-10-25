@@ -1,4 +1,6 @@
 package com.example.redthread.data.local.user
+import androidx.room.*      // Para @Dao, @Query, @Insert, @Update, etc.
+import kotlinx.coroutines.flow.Flow // Para los retornos reactivos de Room
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -25,3 +27,18 @@ interface UserDao {
     @Query("SELECT * FROM users ORDER BY id ASC")
     suspend fun getAll(): List<UserEntity>
 }
+//@Dao
+//interface PedidoDao {
+//
+//    @Query("SELECT * FROM pedidos")
+//    fun obtenerPedidos(): Flow<List<PedidoEntity>>
+//
+//    @Insert(onConflict = OnConflictStrategy.REPLACE)
+//    suspend fun insertarPedido(pedido: PedidoEntity)
+//
+//    @Update
+//    suspend fun actualizarPedido(pedido: PedidoEntity)
+//
+//    @Query("UPDATE pedidos SET estado = :nuevoEstado WHERE id = :id")
+//    suspend fun cambiarEstado(id: Int, nuevoEstado: String)
+//}
