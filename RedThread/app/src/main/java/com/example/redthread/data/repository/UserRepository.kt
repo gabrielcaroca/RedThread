@@ -2,39 +2,54 @@ package com.example.redthread.data.repository
 
 import com.example.redthread.data.local.user.UserDao
 import com.example.redthread.data.local.user.UserEntity
+import com.example.redthread.domain.enums.UserRole
 
-
-// Entidad de usuario
-
-// Repositorio: orquesta reglas de negocio para login/registro sobre el DAO.
+/**
+ * Repositorio de usuarios.
+ * Se encarga de la lógica de negocio para login y registro usando Room (UserDao).
+ */
 class UserRepository(
-    private val userDao: UserDao // Inyección del DAO
+    private val userDao: UserDao
 ) {
 
-    // Login: busca por email y valida contraseña
+    // =====================
+    // LOGIN
+    // =====================
     suspend fun login(email: String, password: String): Result<UserEntity> {
-        val user = userDao.getByEmail(email)                         // Busca usuario
-        return if (user != null && user.password == password) {      // Verifica pass
-            Result.success(user)                                     // Éxito
+        val user = userDao.getByEmail(email)
+        return if (user != null && user.password == password) {
+            Result.success(user)
         } else {
-            Result.failure(IllegalArgumentException("Credenciales inválidas")) // Error
+            Result.failure(IllegalArgumentException("Credenciales inválidas"))
         }
     }
 
-    // Registro: valida no duplicado y crea nuevo usuario (con teléfono)
-    suspend fun register(name: String, email: String, phone: String, password: String): Result<Long> {
-        val exists = userDao.getByEmail(email) != null               // ¿Correo ya usado?
+    // =====================
+    // REGISTRO
+    // =====================
+    suspend fun register(
+        name: String,
+        email: String,
+        phone: String,
+        password: String
+    ): Result<Long> {
+        // Verificar si el correo ya está en uso
+        val exists = userDao.getByEmail(email) != null
         if (exists) {
             return Result.failure(IllegalStateException("El correo ya está registrado"))
         }
-        val id = userDao.insert(                                     // Inserta nuevo
-            UserEntity(
-                name = name,
-                email = email,
-                phone = phone,                                       // Teléfono incluido
-                password = password
-            )
+
+        // Crear el nuevo usuario con rol por defecto "USUARIO"
+        val newUser = UserEntity(
+            name = name,
+            email = email,
+            phone = phone,
+            password = password,
+            role = UserRole.USUARIO // 👈 se asigna el rol por defecto
         )
-        return Result.success(id)                                    // Devuelve ID generado
+
+        // Insertar el nuevo usuario y devolver el ID generado
+        val id = userDao.insert(newUser)
+        return Result.success(id)
     }
 }

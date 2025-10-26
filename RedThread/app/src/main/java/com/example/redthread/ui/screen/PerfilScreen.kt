@@ -1,7 +1,5 @@
 package com.example.redthread.ui.screen
 
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -11,13 +9,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.redthread.ui.theme.Black
-import com.example.redthread.ui.theme.TextPrimary
-import com.example.redthread.ui.theme.TextSecondary
-import com.example.redthread.ui.theme.AccentRed
+import com.example.redthread.ui.theme.*
+import com.example.redthread.domain.enums.UserRole
 
 @Composable
-fun PerfilScreen() {
+fun PerfilScreen(
+    role: UserRole,
+    onLogout: () -> Unit,
+    onGoAdmin: () -> Unit,
+    onGoDespachador: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -25,9 +26,7 @@ fun PerfilScreen() {
             .padding(24.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Mi Perfil",
                 fontSize = 26.sp,
@@ -37,16 +36,30 @@ fun PerfilScreen() {
 
             Spacer(Modifier.height(16.dp))
 
-            Text(
-                text = "Usuario registrado",
-                color = TextSecondary,
-                fontSize = 18.sp
-            )
+            when (role) {
+                UserRole.ADMINISTRADOR -> {
+                    Button(onClick = onGoAdmin) {
+                        Text("Ir al Panel de Administrador", color = TextPrimary)
+                    }
+                }
+                UserRole.DESPACHADOR -> {
+                    Button(onClick = onGoDespachador) {
+                        Text("Ir al Panel de Despachador", color = TextPrimary)
+                    }
+                }
+                else -> {
+                    Text(
+                        text = "Usuario registrado",
+                        color = TextSecondary,
+                        fontSize = 18.sp
+                    )
+                }
+            }
 
             Spacer(Modifier.height(32.dp))
 
             Button(
-                onClick = { /* cerrar sesión o editar perfil */ },
+                onClick = onLogout,
                 colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
             ) {
                 Text("Cerrar sesión", color = TextPrimary)

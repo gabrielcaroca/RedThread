@@ -2,15 +2,14 @@ package com.example.redthread.data.local.user
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-
+import com.example.redthread.domain.enums.UserRole
 
 @Entity(tableName = "users")
 data class UserEntity(
-    @PrimaryKey(autoGenerate = true)    // Clave primaria autoincremental
-    val id: Long = 0L,
-
-    val name: String,                   // Nombre completo del usuario
-    val email: String,                  // Correo (idealmente único a nivel de negocio)
-    val phone: String,                  // Teléfono del usuario (⚠️ agregado)
-    val password: String                // Contraseña (para demo; en prod usar hash)
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val email: String,
+    val phone: String,
+    val password: String,
+    val role: UserRole = UserRole.USUARIO // 👈 usa el enum, no texto directo
 )
