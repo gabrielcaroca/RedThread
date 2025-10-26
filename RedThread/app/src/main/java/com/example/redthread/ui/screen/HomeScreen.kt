@@ -1,28 +1,42 @@
 package com.example.redthread.ui.screen
 
+// ========================
+// imports basicos
+// ========================
 import android.content.res.Resources
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat       // <- necesario para la corutina de shimmer
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset                 // <- para start/end del brush
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -34,14 +48,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.animation.Crossfade
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.CardGray
 import com.example.redthread.ui.theme.CardGrayElevated
 import com.example.redthread.ui.theme.TextPrimary
 import com.example.redthread.ui.theme.TextSecondary
 import com.example.redthread.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.delay
 
+// ========================
+// modelo de filtro y dto ui
+// ========================
 enum class Filtro { TODOS, HOMBRES, MUJERES }
 
 data class ProductoUi(
@@ -52,18 +69,35 @@ data class ProductoUi(
     val target: Filtro = Filtro.TODOS
 )
 
-/* =========================
-   Home
-   ========================= */
+// ========================
+// home principal
+// objetivos:
+// - mostrar skeletons 3s usando corutinas (sin bloquear hilo ui)
+// - shimmer durante la carga
+// - luego crossfade a la grilla real
+// ========================
 @Composable
 fun HomeScreen(
     onProductoClick: (ProductoUi) -> Unit = {},
-    onCarritoClick: () -> Unit = {},
-    onPerfilClick: () -> Unit = {},
+    onCarritoClick: () -> Unit = {},   // no usado aqui, lo dejo para compatibilidad
+    onPerfilClick: () -> Unit = {},    // no usado aqui, lo dejo para compatibilidad
     viewModel: HomeViewModel = viewModel()
 ) {
+    // estado de tab
     var filtro by remember { mutableStateOf(Filtro.TODOS) }
+
+    // productos locales del vm
     val productos by viewModel.productos.collectAsState()
+
+    // bandera de carga controlada por corutina
+    var isLoading by remember { mutableStateOf(true) }
+
+    // launchedEffect corre en una corutina de compose
+    // delay es suspend y no bloquea el hilo principal
+    LaunchedEffect(Unit) {
+        delay(1000)          // simula carga de 1s
+        isLoading = false
+    }
 
     Column(
         modifier = Modifier
@@ -78,17 +112,24 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        AnimatedProductGrid(
-            filtro = filtro,
-            productos = productos,
-            onProductoClick = onProductoClick
-        )
+        // crossfade entre skeletons y contenido real
+        Crossfade(targetState = isLoading, label = "homeCrossfadeLoading") { loading ->
+            if (loading) {
+                SkeletonGrid()
+            } else {
+                AnimatedProductGrid(
+                    filtro = filtro,
+                    productos = productos,
+                    onProductoClick = onProductoClick
+                )
+            }
+        }
     }
 }
 
-/* =========================
-   Grid animado con transición lateral
-   ========================= */
+// ========================
+// grilla real con transicion lateral al cambiar de tab
+// ========================
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AnimatedProductGrid(
@@ -96,6 +137,7 @@ private fun AnimatedProductGrid(
     productos: List<ProductoUi>,
     onProductoClick: (ProductoUi) -> Unit
 ) {
+    // helper para decidir direccion del slide
     fun Filtro.idx(): Int = when (this) {
         Filtro.TODOS -> 0
         Filtro.HOMBRES -> 1
@@ -123,7 +165,10 @@ private fun AnimatedProductGrid(
             productos.filter { filtroActual == Filtro.TODOS || it.target == filtroActual }
         }
 
+        val gridState = rememberLazyGridState()
+
         LazyVerticalGrid(
+            state = gridState,
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -134,11 +179,9 @@ private fun AnimatedProductGrid(
                 ProductCard(
                     producto = p,
                     onClick = { onProductoClick(p) },
-                    // ✅ Nuevo API en Compose 1.7+: animateItem()
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = tween(220),
-                        fadeOutSpec = tween(180),
-                        placementSpec = tween(
+                    // uso animateItemPlacement por compatibilidad amplia
+                    modifier = Modifier.animateItemPlacement(
+                        animationSpec = tween(
                             durationMillis = 300 + (index % 6) * 20,
                             easing = FastOutSlowInEasing
                         )
@@ -149,9 +192,116 @@ private fun AnimatedProductGrid(
     }
 }
 
-/* =========================
-   Tabs (como los tenías)
-   ========================= */
+// ========================
+// grid de skeletons (mismo layout que el real)
+// ========================
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SkeletonGrid(
+    skeletonCount: Int = 8
+) {
+    val placeholders = remember(skeletonCount) { List(skeletonCount) { it } }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(placeholders, key = { it }) { index ->
+            SkeletonCard(
+                modifier = Modifier.animateItemPlacement(
+                    animationSpec = tween(
+                        durationMillis = 300 + (index % 6) * 20,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            )
+        }
+    }
+}
+
+// ========================
+// shimmer brush para skeletons
+// detalle: uso rememberInfiniteTransition + animateFloat
+// para desplazar un gradiente lineal horizontal
+// ========================
+@Composable
+private fun rememberShimmerBrush(): Brush {
+    val shimmerColors = listOf(
+        Color(0xFF2A2A2A),
+        Color(0xFF3A3A3A),
+        Color(0xFF2A2A2A)
+    )
+
+    val transition = rememberInfiniteTransition(label = "skeletonShimmer")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "skeletonShift"
+    )
+
+    // offset horizontal en pixeles logicos
+    val startX = 0f + progress * 600f
+    val endX = startX + 300f
+
+    // uso offset tipado para evitar problemas de inferencia
+    return Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(startX, 0f),
+        end = Offset(endX, 0f)
+    )
+}
+
+// ========================
+// card skeleton (mismo alto de imagen y lineas para titulo/precio)
+// ========================
+@Composable
+private fun SkeletonCard(
+    modifier: Modifier = Modifier
+) {
+    val shimmer = rememberShimmerBrush()
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(CardGray)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp)
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                .background(shimmer)
+        )
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(shimmer)
+            )
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.45f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(shimmer)
+            )
+        }
+    }
+}
+
+// ========================
+// tabs con indicador deslizante
+// ========================
 @Composable
 private fun TabsAnimated(
     selected: Filtro,
@@ -167,13 +317,13 @@ private fun TabsAnimated(
     val selectedIndex = items.indexOfFirst { it.first == selected }.coerceAtLeast(0)
 
     val targetOffset = (selectedIndex * tabWidth.value)
-    val offsetAnim by androidx.compose.animation.core.animateFloatAsState(
+    val offsetAnim by animateFloatAsState(
         targetValue = targetOffset,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "tabOffset"
     )
 
-    val widthAnim by androidx.compose.animation.core.animateDpAsState(
+    val widthAnim by animateDpAsState(
         targetValue = tabWidth,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "tabWidth"
@@ -220,9 +370,9 @@ private fun TabsAnimated(
     }
 }
 
-/* =========================
-   Card producto
-   ========================= */
+// ========================
+// card real del producto
+// ========================
 @Composable
 private fun ProductCard(
     producto: ProductoUi,
@@ -264,14 +414,13 @@ private fun ProductCard(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                val emoji = when (producto.categoria) {
-                    "polera" -> "👕"
-                    "chaqueta" -> "🧥"
-                    "pantalon" -> "👖"
-                    "zapatillas" -> "👟"
-                    else -> "🛍️"
-                }
-                Text(text = emoji, fontSize = 56.sp, color = TextPrimary)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF2E2E2E))
+                )
             }
         }
 
@@ -294,9 +443,9 @@ private fun ProductCard(
     }
 }
 
-/* =========================
-   helpers
-   ========================= */
+// ========================
+// helpers de recursos
+// ========================
 private fun Resources.safeGetIdentifier(name: String, defType: String, defPackage: String): Int {
     return try { getIdentifier(name, defType, defPackage) } catch (_: Exception) { 0 }
 }

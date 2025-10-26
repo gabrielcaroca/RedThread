@@ -1,49 +1,49 @@
 package com.example.redthread.ui.screen
 
-import androidx.compose.foundation.background                 // Fondo
-import androidx.compose.foundation.layout.*                   // Box/Column/Row/Spacer
-import androidx.compose.foundation.shape.RoundedCornerShape   // Bordes redondeados
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons                  // Íconos Material
-import androidx.compose.material.icons.filled.Visibility      // Ícono mostrar
-import androidx.compose.material.icons.filled.VisibilityOff   // Ícono ocultar
-import androidx.compose.material.icons.outlined.Email         // Ícono email
-import androidx.compose.material.icons.outlined.Person        // Ícono nombre
-import androidx.compose.material.icons.outlined.Phone         // Ícono teléfono
-import androidx.compose.material.icons.outlined.Lock          // Ícono candado
-import androidx.compose.material.icons.automirrored.filled.ArrowBack // Flecha back auto-mirrored
-import androidx.compose.material3.*                           // Material 3
-import androidx.compose.runtime.*                             // remember, Composable
-import androidx.compose.ui.Alignment                          // Alineaciones
-import androidx.compose.ui.Modifier                           // Modificador
-import androidx.compose.ui.graphics.Brush                     // Degradados
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.*                       // KeyboardOptions/Types/Transformations
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp                            // DPs
-import androidx.lifecycle.compose.collectAsStateWithLifecycle // Observa StateFlow
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.redthread.ui.viewmodel.AuthViewModel
-import androidx.compose.foundation.BorderStroke
 
-
-// ====== Estilos ======
-private val RT_Red = Color(0xFFE11D2E) // Rojo acento RedThread
+// ===== estilos (idénticos a Login) =====
+private val RT_Red = Color(0xFFE11D2E)
 private val RT_Gradient = Brush.verticalGradient(
-    colors = listOf(Color(0xFF0F0F11), Color(0xFF1A1B20))    // Degradado oscuro
+    colors = listOf(Color(0xFF0F0F11), Color(0xFF1A1B20))
 )
-private val CardShape = RoundedCornerShape(18.dp)            // Card con bordes
+private val CardShape = RoundedCornerShape(18.dp)
 private fun android.content.Context.safeDrawableId(name: String): Int =
     resources.getIdentifier(name, "drawable", packageName).let { if (it == 0) 0 else it }
 
-// Pantalla Registro conectada al VM
+// ===== VM wrapper =====
 @Composable
 fun RegisterScreenVm(
     vm: AuthViewModel,
-    onRegisteredNavigateLogin: () -> Unit,   // Navega a Login si success=true
-    onGoLogin: () -> Unit                    // Botón alternativo / volver
+    onRegisteredNavigateLogin: () -> Unit,
+    onGoLogin: () -> Unit
 ) {
     val state by vm.register.collectAsStateWithLifecycle()
 
@@ -80,7 +80,7 @@ fun RegisterScreenVm(
     )
 }
 
-// Pantalla Registro (solo UI)
+// ===== UI (scrollable) =====
 @Composable
 private fun RegisterScreen(
     name: String,
@@ -106,37 +106,20 @@ private fun RegisterScreen(
 ) {
     val ctx = LocalContext.current
     val logoId = remember { ctx.safeDrawableId("logo_redthread") }
-    val bg = RT_Gradient
 
     var showPass by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
+    val scroll = rememberScrollState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(bg)
-            .padding(18.dp),
+            .background(RT_Gradient)
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .navigationBarsPadding() // evita choque con barra del sistema
+            .imePadding(),           // evita que el teclado tape el contenido
         contentAlignment = Alignment.Center
     ) {
-        // === NUEVO: botón “Volver al inicio” arriba (alto contraste) ===
-        TextButton(
-            onClick = onGoLogin, // reutilizamos como "volver"
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(4.dp),
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = Color.White
-            )
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver"
-            )
-            Spacer(Modifier.width(6.dp))
-            Text("Volver al inicio")
-        }
-
-        // ----- Card central -----
         Surface(
             shape = CardShape,
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
@@ -144,22 +127,48 @@ private fun RegisterScreen(
             shadowElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentHeight()
                 .padding(horizontal = 8.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(22.dp),
+                    .verticalScroll(scroll)           // ← hace scrolleable TODO el formulario
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp, bottom = 24.dp), // respiración extra inferior
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header
+                // ← Flecha + texto "Volver al login" (arriba a la izquierda)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = onGoLogin,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al login"
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Volver al login", fontWeight = FontWeight.Medium)
+                    }
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                // Header con logo + título
                 if (logoId != 0) {
                     Icon(
                         painter = painterResource(id = logoId),
                         contentDescription = "RedThread",
                         tint = Color.Unspecified,
                         modifier = Modifier
-                            .height(56.dp)
+                            .height(52.dp)                 // un poco más compacto
                             .padding(bottom = 6.dp)
                     )
                 }
@@ -170,7 +179,7 @@ private fun RegisterScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = "Solo te tomará un minuto",
                     textAlign = TextAlign.Center,
@@ -178,9 +187,9 @@ private fun RegisterScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 )
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // Nombre
+                // Campos (ligeramente más compactos con menos spacing)
                 OutlinedTextField(
                     value = name,
                     onValueChange = onNameChange,
@@ -200,9 +209,8 @@ private fun RegisterScreen(
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
-                // Email
                 OutlinedTextField(
                     value = email,
                     onValueChange = onEmailChange,
@@ -222,9 +230,8 @@ private fun RegisterScreen(
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
-                // Teléfono
                 OutlinedTextField(
                     value = phone,
                     onValueChange = onPhoneChange,
@@ -244,9 +251,8 @@ private fun RegisterScreen(
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
-                // Password
                 OutlinedTextField(
                     value = pass,
                     onValueChange = onPassChange,
@@ -274,9 +280,8 @@ private fun RegisterScreen(
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
-                // Confirmación
                 OutlinedTextField(
                     value = confirm,
                     onValueChange = onConfirmChange,
@@ -304,9 +309,8 @@ private fun RegisterScreen(
                     )
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // Registrar
                 Button(
                     onClick = onSubmit,
                     enabled = canSubmit && !isSubmitting,
@@ -340,25 +344,6 @@ private fun RegisterScreen(
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                // Ir a Login (borde visible en oscuro)
-                OutlinedButton(
-                    onClick = onGoLogin,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant
-                    )
-                ) {
-                    Text("Ir a Login", fontWeight = FontWeight.Medium)
                 }
             }
         }
