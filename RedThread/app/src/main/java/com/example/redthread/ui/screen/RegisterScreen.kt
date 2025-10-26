@@ -1,238 +1,350 @@
 package com.example.redthread.ui.screen
 
-
-import androidx.compose.foundation.background                 // Fondo
-import androidx.compose.foundation.layout.*                   // Box/Column/Row/Spacer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons                  // Íconos Material
-import androidx.compose.material.icons.filled.Visibility      // Ícono mostrar
-import androidx.compose.material.icons.filled.VisibilityOff   // Ícono ocultar
-import androidx.compose.material3.*                           // Material 3
-import androidx.compose.runtime.*                             // remember, Composable
-import androidx.compose.ui.Alignment                          // Alineaciones
-import androidx.compose.ui.Modifier                           // Modificador
-import androidx.compose.ui.text.input.*                       // KeyboardOptions/Types/Transformations
-import androidx.compose.ui.unit.dp                            // DPs
-import androidx.lifecycle.compose.collectAsStateWithLifecycle // Observa StateFlow
-import androidx.lifecycle.viewmodel.compose.viewModel         // Obtiene VM // ViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.redthread.ui.viewmodel.AuthViewModel
 
-//1 creamos la union con el viewmodel creado
-@Composable                                                  // Pantalla Registro conectada al VM
+// ===== estilos (idénticos a Login) =====
+private val RT_Red = Color(0xFFE11D2E)
+private val RT_Gradient = Brush.verticalGradient(
+    colors = listOf(Color(0xFF0F0F11), Color(0xFF1A1B20))
+)
+private val CardShape = RoundedCornerShape(18.dp)
+private fun android.content.Context.safeDrawableId(name: String): Int =
+    resources.getIdentifier(name, "drawable", packageName).let { if (it == 0) 0 else it }
+
+// ===== VM wrapper =====
+@Composable
 fun RegisterScreenVm(
-    vm: AuthViewModel,                            // MOD: recibimos el VM desde NavGraph
-    onRegisteredNavigateLogin: () -> Unit,                   // Navega a Login si success=true
-    onGoLogin: () -> Unit                                    // Botón alternativo para ir a Login
+    vm: AuthViewModel,
+    onRegisteredNavigateLogin: () -> Unit,
+    onGoLogin: () -> Unit
 ) {
+    val state by vm.register.collectAsStateWithLifecycle()
 
-    val state by vm.register.collectAsStateWithLifecycle()   // Observa estado en tiempo real
-
-    if (state.success) {                                     // Si registro fue exitoso
-        vm.clearRegisterResult()                             // Limpia banderas
-        onRegisteredNavigateLogin()                          // Navega a Login
+    if (state.success) {
+        vm.clearRegisterResult()
+        onRegisteredNavigateLogin()
     }
 
-    RegisterScreen(                                          // Delegamos UI presentacional
-        name = state.name,                                   // 1) Nombre
-        email = state.email,                                 // 2) Email
-        phone = state.phone,                                 // 3) Teléfono
-        pass = state.pass,                                   // 4) Password
-        confirm = state.confirm,                             // 5) Confirmación
+    RegisterScreen(
+        name = state.name,
+        email = state.email,
+        phone = state.phone,
+        pass = state.pass,
+        confirm = state.confirm,
 
-        nameError = state.nameError,                         // Errores por campo
+        nameError = state.nameError,
         emailError = state.emailError,
         phoneError = state.phoneError,
         passError = state.passError,
         confirmError = state.confirmError,
 
-        canSubmit = state.canSubmit,                         // Habilitar "Registrar"
-        isSubmitting = state.isSubmitting,                   // Flag de carga
-        errorMsg = state.errorMsg,                           // Error global (duplicado)
+        canSubmit = state.canSubmit,
+        isSubmitting = state.isSubmitting,
+        errorMsg = state.errorMsg,
 
-        onNameChange = vm::onNameChange,                     // Handlers
+        onNameChange = vm::onNameChange,
         onEmailChange = vm::onRegisterEmailChange,
         onPhoneChange = vm::onPhoneChange,
         onPassChange = vm::onRegisterPassChange,
         onConfirmChange = vm::onConfirmChange,
 
-        onSubmit = vm::submitRegister,                       // Acción Registrar
-        onGoLogin = onGoLogin                                // Ir a Login
+        onSubmit = vm::submitRegister,
+        onGoLogin = onGoLogin
     )
 }
 
-
-//2 ajustamos el private y parametros
-@Composable // Pantalla Registro (solo navegación)
+// ===== UI (scrollable) =====
+@Composable
 private fun RegisterScreen(
-    name: String,                                            // 1) Nombre (solo letras/espacios)
-    email: String,                                           // 2) Email
-    phone: String,                                           // 3) Teléfono (solo números)
-    pass: String,                                            // 4) Password (segura)
-    confirm: String,                                         // 5) Confirmación
-    nameError: String?,                                      // Errores
+    name: String,
+    email: String,
+    phone: String,
+    pass: String,
+    confirm: String,
+    nameError: String?,
     emailError: String?,
     phoneError: String?,
     passError: String?,
     confirmError: String?,
-    canSubmit: Boolean,                                      // Habilitar botón
-    isSubmitting: Boolean,                                   // Flag de carga
-    errorMsg: String?,                                       // Error global (duplicado)
-    onNameChange: (String) -> Unit,                          // Handler nombre
-    onEmailChange: (String) -> Unit,                         // Handler email
-    onPhoneChange: (String) -> Unit,                         // Handler teléfono
-    onPassChange: (String) -> Unit,                          // Handler password
-    onConfirmChange: (String) -> Unit,                       // Handler confirmación
-    onSubmit: () -> Unit,                                    // Acción Registrar
-    onGoLogin: () -> Unit                                    // Ir a Login
+    canSubmit: Boolean,
+    isSubmitting: Boolean,
+    errorMsg: String?,
+    onNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onPassChange: (String) -> Unit,
+    onConfirmChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onGoLogin: () -> Unit
 ) {
-    val bg = MaterialTheme.colorScheme.tertiaryContainer // Fondo único
-    //4 Anexamos las variables para mostrar y ocultar el password
-    var showPass by remember { mutableStateOf(false) }        // Mostrar/ocultar password
-    var showConfirm by remember { mutableStateOf(false) }     // Mostrar/ocultar confirm
+    val ctx = LocalContext.current
+    val logoId = remember { ctx.safeDrawableId("logo_redthread") }
+
+    var showPass by remember { mutableStateOf(false) }
+    var showConfirm by remember { mutableStateOf(false) }
+    val scroll = rememberScrollState()
 
     Box(
         modifier = Modifier
-            .fillMaxSize() // Ocupa todo
-            .background(bg) // Fondo
-            .padding(16.dp), // Margen
-        contentAlignment = Alignment.Center // Centro
+            .fillMaxSize()
+            .background(RT_Gradient)
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .navigationBarsPadding() // evita choque con barra del sistema
+            .imePadding(),           // evita que el teclado tape el contenido
+        contentAlignment = Alignment.Center
     ) {
-        // 5 modificamos el parametro de la columna
-        Column(modifier = Modifier.fillMaxWidth()) { // Estructura vertical
-            Text(
-                text = "Registro",
-                style = MaterialTheme.typography.headlineSmall // Título
-            )
-            Spacer(Modifier.height(12.dp)) // Separación
-
-            //6 eliminamos los elementos que van de aqui y agregamos los nuevos del formulario
-            // ---------- NOMBRE (solo letras/espacios) ----------
-            OutlinedTextField(
-                value = name,                                // Valor actual
-                onValueChange = onNameChange,                // Notifica VM (filtra y valida)
-                label = { Text("Nombre") },                  // Etiqueta
-                singleLine = true,                           // Una línea
-                isError = nameError != null,                 // Marca error
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text         // Teclado de texto
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (nameError != null) {                         // Muestra error
-                Text(nameError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(8.dp))                    // Espacio
-
-            // ---------- EMAIL ----------
-            OutlinedTextField(
-                value = email,                               // Valor actual
-                onValueChange = onEmailChange,               // Notifica VM (valida)
-                label = { Text("Email") },                   // Etiqueta
-                singleLine = true,                           // Una línea
-                isError = emailError != null,                // Marca error
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email        // Teclado de email
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (emailError != null) {                        // Muestra error
-                Text(emailError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(8.dp))                    // Espacio
-
-            // ---------- TELÉFONO (solo números). El VM ya filtra a dígitos ----------
-            OutlinedTextField(
-                value = phone,                               // Valor actual (solo dígitos)
-                onValueChange = onPhoneChange,               // Notifica VM (filtra y valida)
-                label = { Text("Teléfono") },                // Etiqueta
-                singleLine = true,                           // Una línea
-                isError = phoneError != null,                // Marca error
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number       // Teclado numérico
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (phoneError != null) {                        // Muestra error
-                Text(phoneError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(8.dp))                    // Espacio
-
-            // ---------- PASSWORD (segura) ----------
-            OutlinedTextField(
-                value = pass,                                // Valor actual
-                onValueChange = onPassChange,                // Notifica VM (valida fuerza)
-                label = { Text("Contraseña") },              // Etiqueta
-                singleLine = true,                           // Una línea
-                isError = passError != null,                 // Marca error
-                visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(), // Oculta/mostrar
-                trailingIcon = {                             // Icono para alternar visibilidad
-                    IconButton(onClick = { showPass = !showPass }) {
-                        Icon(
-                            imageVector = if (showPass) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (showPass) "Ocultar contraseña" else "Mostrar contraseña"
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (passError != null) {                         // Muestra error
-                Text(passError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(8.dp))                    // Espacio
-
-            // ---------- CONFIRMAR PASSWORD ----------
-            OutlinedTextField(
-                value = confirm,                             // Valor actual
-                onValueChange = onConfirmChange,             // Notifica VM (valida igualdad)
-                label = { Text("Confirmar contraseña") },    // Etiqueta
-                singleLine = true,                           // Una línea
-                isError = confirmError != null,              // Marca error
-                visualTransformation = if (showConfirm) VisualTransformation.None else PasswordVisualTransformation(), // Oculta/mostrar
-                trailingIcon = {                             // Icono para alternar visibilidad
-                    IconButton(onClick = { showConfirm = !showConfirm }) {
-                        Icon(
-                            imageVector = if (showConfirm) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (showConfirm) "Ocultar confirmación" else "Mostrar confirmación"
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (confirmError != null) {                      // Muestra error
-                Text(confirmError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(16.dp))                   // Espacio
-
-            // ---------- BOTÓN REGISTRAR ----------
-            Button(
-                onClick = onSubmit,                          // Intenta registrar (inserta en la colección)
-                enabled = canSubmit && !isSubmitting,        // Solo si todo es válido y no cargando
-                modifier = Modifier.fillMaxWidth()
+        Surface(
+            shape = CardShape,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(horizontal = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(scroll)           // ← hace scrolleable TODO el formulario
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp, bottom = 24.dp), // respiración extra inferior
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (isSubmitting) {                          // Muestra loading mientras “procesa”
-                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Creando cuenta...")
-                } else {
-                    Text("Registrar")
+                // ← Flecha + texto "Volver al login" (arriba a la izquierda)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = onGoLogin,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al login"
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Volver al login", fontWeight = FontWeight.Medium)
+                    }
                 }
-            }
 
-            if (errorMsg != null) {                          // Error global (ej: usuario duplicado)
-                Spacer(Modifier.height(8.dp))
-                Text(errorMsg, color = MaterialTheme.colorScheme.error)
-            }
+                Spacer(Modifier.height(6.dp))
 
-            Spacer(Modifier.height(12.dp))                   // Espacio
+                // Header con logo + título
+                if (logoId != 0) {
+                    Icon(
+                        painter = painterResource(id = logoId),
+                        contentDescription = "RedThread",
+                        tint = Color.Unspecified,
+                        modifier = Modifier
+                            .height(52.dp)                 // un poco más compacto
+                            .padding(bottom = 6.dp)
+                    )
+                }
+                Text(
+                    text = "Crea tu cuenta",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Solo te tomará un minuto",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                )
+                Spacer(Modifier.height(16.dp))
 
-            // ---------- BOTÓN IR A LOGIN ----------
-            OutlinedButton(onClick = onGoLogin, modifier = Modifier.fillMaxWidth()) {
-                Text("Ir a Login")
+                // Campos (ligeramente más compactos con menos spacing)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    label = { Text("Nombre") },
+                    leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
+                    singleLine = true,
+                    isError = nameError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (nameError != null) {
+                    Text(
+                        nameError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = onEmailChange,
+                    label = { Text("Email") },
+                    leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
+                    singleLine = true,
+                    isError = emailError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (emailError != null) {
+                    Text(
+                        emailError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = onPhoneChange,
+                    label = { Text("Teléfono") },
+                    leadingIcon = { Icon(Icons.Outlined.Phone, contentDescription = null) },
+                    singleLine = true,
+                    isError = phoneError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (phoneError != null) {
+                    Text(
+                        phoneError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = pass,
+                    onValueChange = onPassChange,
+                    label = { Text("Contraseña") },
+                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
+                    singleLine = true,
+                    isError = passError != null,
+                    visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPass = !showPass }) {
+                            Icon(
+                                imageVector = if (showPass) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showPass) "Ocultar contraseña" else "Mostrar contraseña"
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (passError != null) {
+                    Text(
+                        passError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = confirm,
+                    onValueChange = onConfirmChange,
+                    label = { Text("Confirmar contraseña") },
+                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
+                    singleLine = true,
+                    isError = confirmError != null,
+                    visualTransformation = if (showConfirm) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirm = !showConfirm }) {
+                            Icon(
+                                imageVector = if (showConfirm) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showConfirm) "Ocultar confirmación" else "Mostrar confirmación"
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (confirmError != null) {
+                    Text(
+                        confirmError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Button(
+                    onClick = onSubmit,
+                    enabled = canSubmit && !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RT_Red,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            color = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Creando cuenta...")
+                    } else {
+                        Text("Registrar", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                if (errorMsg != null) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        errorMsg,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
