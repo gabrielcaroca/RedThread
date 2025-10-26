@@ -1,26 +1,25 @@
 package com.example.redthread.ui.screen
 
 import android.content.res.Resources
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.animation.Crossfade
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.CardGray
 import com.example.redthread.ui.theme.CardGrayElevated
@@ -52,23 +52,24 @@ data class ProductoUi(
     val target: Filtro = Filtro.TODOS
 )
 
+/* =========================
+   Home
+   ========================= */
 @Composable
 fun HomeScreen(
     onProductoClick: (ProductoUi) -> Unit = {},
-    onCarritoClick: () -> Unit = {},   // se mantiene la firma, aunque el top bar vive afuera
+    onCarritoClick: () -> Unit = {},
     onPerfilClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     var filtro by remember { mutableStateOf(Filtro.TODOS) }
-
     val productos by viewModel.productos.collectAsState()
-    val filtrados = productos.filter { filtro == Filtro.TODOS || it.target == filtro }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Black)
-            .padding(top = 0.dp) // el padding del top bar ya lo maneja el Scaffold de AppNavGraph
+            .padding(top = 0.dp)
     ) {
         TabsAnimated(
             selected = filtro,
@@ -77,20 +78,80 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
 
+        AnimatedProductGrid(
+            filtro = filtro,
+            productos = productos,
+            onProductoClick = onProductoClick
+        )
+    }
+}
+
+/* =========================
+   Grid animado con transición lateral
+   ========================= */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun AnimatedProductGrid(
+    filtro: Filtro,
+    productos: List<ProductoUi>,
+    onProductoClick: (ProductoUi) -> Unit
+) {
+    fun Filtro.idx(): Int = when (this) {
+        Filtro.TODOS -> 0
+        Filtro.HOMBRES -> 1
+        Filtro.MUJERES -> 2
+    }
+
+    AnimatedContent(
+        targetState = filtro,
+        transitionSpec = {
+            val goingRight = targetState.idx() > initialState.idx()
+
+            val slideIn = slideInHorizontally(
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) { full -> if (goingRight) +full else -full }
+
+            val slideOut = slideOutHorizontally(
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) { full -> if (goingRight) -full else +full }
+
+            (slideIn + fadeIn(tween(250))) togetherWith (slideOut + fadeOut(tween(200)))
+        },
+        label = "gridTransition"
+    ) { filtroActual ->
+        val filtrados = remember(productos, filtroActual) {
+            productos.filter { filtroActual == Filtro.TODOS || it.target == filtroActual }
+        }
+
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxSize()
         ) {
-            items(filtrados, key = { it.id }) { p ->
-                ProductCard(producto = p, onClick = { onProductoClick(p) })
+            itemsIndexed(filtrados, key = { _, it -> it.id }) { index, p ->
+                ProductCard(
+                    producto = p,
+                    onClick = { onProductoClick(p) },
+                    // ✅ Nuevo API en Compose 1.7+: animateItem()
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = tween(220),
+                        fadeOutSpec = tween(180),
+                        placementSpec = tween(
+                            durationMillis = 300 + (index % 6) * 20,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                )
             }
         }
     }
 }
 
+/* =========================
+   Tabs (como los tenías)
+   ========================= */
 @Composable
 private fun TabsAnimated(
     selected: Filtro,
@@ -106,13 +167,13 @@ private fun TabsAnimated(
     val selectedIndex = items.indexOfFirst { it.first == selected }.coerceAtLeast(0)
 
     val targetOffset = (selectedIndex * tabWidth.value)
-    val offsetAnim by animateFloatAsState(
+    val offsetAnim by androidx.compose.animation.core.animateFloatAsState(
         targetValue = targetOffset,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "tabOffset"
     )
 
-    val widthAnim by animateDpAsState(
+    val widthAnim by androidx.compose.animation.core.animateDpAsState(
         targetValue = tabWidth,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "tabWidth"
@@ -159,8 +220,15 @@ private fun TabsAnimated(
     }
 }
 
+/* =========================
+   Card producto
+   ========================= */
 @Composable
-private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
+private fun ProductCard(
+    producto: ProductoUi,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val ctx = LocalContext.current
     val drawableName = when (producto.categoria) {
         "polera" -> "ph_polera"
@@ -173,7 +241,7 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
     val imgId = remember(drawableName) { ctx.safeDrawableId(drawableName) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(CardGray)
             .clickable(onClick = onClick)
@@ -226,7 +294,9 @@ private fun ProductCard(producto: ProductoUi, onClick: () -> Unit) {
     }
 }
 
-// helpers
+/* =========================
+   helpers
+   ========================= */
 private fun Resources.safeGetIdentifier(name: String, defType: String, defPackage: String): Int {
     return try { getIdentifier(name, defType, defPackage) } catch (_: Exception) { 0 }
 }

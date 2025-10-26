@@ -10,6 +10,7 @@ sealed class Route(val path: String) {
     data object Perfil : Route("perfil") // 6
     data object Checkout : Route("pago") // 7
     data object Despachador : Route("despachador") // 8
+    data object VistaModerador : Route("vista_moderador")
 }
 
 /*

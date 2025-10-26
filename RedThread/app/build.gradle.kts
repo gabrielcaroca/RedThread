@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.redthread"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.redthread"
@@ -30,6 +28,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -43,67 +42,65 @@ android {
 }
 
 dependencies {
+    // ===== Compose BOM (una sola) =====
+    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
+
+    // ===== Core y Activity =====
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.room.common.jvm)
+
+    // ===== Compose UI base =====
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // ===== Foundation (LazyGrid, animateItemPlacement, etc.) =====
+    implementation("androidx.compose.foundation:foundation")
+
+    // ===== Animations (AnimatedContent, Crossfade, etc.) =====
+    implementation("androidx.compose.animation:animation")
+
+    // ===== Material 3 =====
+    implementation("androidx.compose.material3:material3")
+
+    // ===== Material icons =====
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // ===== Navigation Compose =====
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+
+    // ===== Lifecycle + ViewModel para Compose =====
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    // ===== Coroutines =====
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // ===== Room (SQLite local) =====
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    // ===== DataStore (preferencias locales) =====
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // ===== Carga de imágenes =====
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // ===== SplashScreen =====
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // ===== Material Components (para compatibilidad XML) =====
+    implementation("com.google.android.material:material:1.12.0")
+
+    // ===== Tests =====
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    //librerias nuevas
-    implementation("androidx.navigation:navigation-compose:2.9.5")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    // Material icons (necesarios para Visibility / VisibilityOff)
-    implementation("androidx.compose.material:material-icons-extended")
-    // compose bom para manejar versiones alineadas
-    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
-
-    // compose ui y material3
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.material3:material3")
-
-    // navigation compose
-    implementation("androidx.navigation:navigation-compose:2.8.0")
-
-    // lifecycle + viewmodel para compose
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
-
-    // coroutines (util para viewmodel)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-
-    // iconos de material para los placeholders y la bottom bar
-    implementation("androidx.compose.material:material-icons-extended")
-    // Room (SQLite) - runtime y extensiones KTX
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-
-    // Compilador de Room vía KSP
-    ksp("androidx.room:room-compiler:2.6.1")
-
-    //cargar imagenes con compose
-    implementation("io.coil-kt:coil-compose:2.7.0")
-
-    implementation("androidx.core:core-splashscreen:1.0.1")
-    implementation("com.google.android.material:material:1.12.0")
-
-    implementation ("androidx.datastore:datastore-preferences:1.1.1")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-
-
-
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.09.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
