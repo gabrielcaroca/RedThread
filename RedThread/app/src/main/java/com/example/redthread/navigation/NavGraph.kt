@@ -24,13 +24,13 @@ import com.example.redthread.ui.screen.PerfilScreen
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.TextPrimary
 import com.example.redthread.ui.viewmodel.AuthViewModel
+import com.example.redthread.domain.enums.UserRole
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
-    // seguimos colectando para el guard en la ruta Perfil
     val header by authViewModel.header.collectAsState()
 
     Scaffold(
@@ -43,16 +43,11 @@ fun AppNavGraph(
                     }
                 },
                 onPerfilClick = {
-                    // lee el valor ACTUAL de sesion al momento del click
                     val logged = authViewModel.header.value.isLoggedIn
                     if (logged) {
-                        navController.navigate(Route.Perfil.path) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Route.Perfil.path) { launchSingleTop = true }
                     } else {
-                        navController.navigate(Route.Login.path) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Route.Login.path) { launchSingleTop = true }
                     }
                 },
                 onCarritoClick = {
@@ -73,7 +68,9 @@ fun AppNavGraph(
             composable(Route.Home.path) {
                 HomeScreen(
                     onProductoClick = { /* detalle producto */ },
-                    onCarritoClick = { navController.navigate(Route.Carrito.path) { launchSingleTop = true } }
+                    onCarritoClick = {
+                        navController.navigate(Route.Carrito.path) { launchSingleTop = true }
+                    }
                 )
             }
 
@@ -86,7 +83,9 @@ fun AppNavGraph(
                             popUpTo(Route.Home.path) { inclusive = false }
                         }
                     },
-                    onGoRegister = { navController.navigate(Route.Register.path) { launchSingleTop = true } }
+                    onGoRegister = {
+                        navController.navigate(Route.Register.path) { launchSingleTop = true }
+                    }
                 )
             }
 
@@ -103,13 +102,23 @@ fun AppNavGraph(
             }
 
             composable(Route.Perfil.path) {
-                // guard por si entran directo
                 if (!header.isLoggedIn) {
                     LaunchedEffect(Unit) {
                         navController.navigate(Route.Login.path) { launchSingleTop = true }
                     }
                 } else {
-                    PerfilScreen()
+                    val role = when (header.role) {
+                        "ADMINISTRADOR" -> UserRole.ADMINISTRADOR
+                        "DESPACHADOR" -> UserRole.DESPACHADOR
+                        else -> UserRole.USUARIO
+                    }
+
+                    PerfilScreen(
+                        role = role,
+                        onLogout = { authViewModel.logout() },
+                        onGoAdmin = { navController.navigate(Route.VistaModerador.path) },
+                        onGoDespachador = { navController.navigate(Route.Despachador.path) }
+                    )
                 }
             }
 
@@ -123,10 +132,10 @@ fun AppNavGraph(
                     Text(text = "Carrito", color = TextPrimary)
                 }
             }
+
             composable(Route.VistaModerador.path) {
                 DeveloperScreen(vm = androidx.lifecycle.viewmodel.compose.viewModel())
             }
-
         }
     }
 }

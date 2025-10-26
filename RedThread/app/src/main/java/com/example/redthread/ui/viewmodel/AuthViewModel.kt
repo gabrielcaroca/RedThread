@@ -48,7 +48,8 @@ data class RegisterUiState(
 data class AuthHeaderState(
     val isLoggedIn: Boolean = false,
     val displayName: String? = null,
-    val email: String? = null
+    val email: String? = null,
+    val role: String? = null
 )
 
 class AuthViewModel(
@@ -70,9 +71,10 @@ class AuthViewModel(
             combine(
                 session.isLoggedInFlow,
                 session.userNameFlow,
-                session.userEmailFlow
-            ) { logged, name, email ->
-                AuthHeaderState(isLoggedIn = logged, displayName = name, email = email)
+                session.userEmailFlow,
+                session.userRoleFlow
+            ) { logged, name, email, role ->
+                AuthHeaderState(isLoggedIn = logged, displayName = name, email = email, role = role)
             }.collectLatest { _header.value = it }
         }
     }
@@ -106,22 +108,29 @@ class AuthViewModel(
 
             _login.update {
                 if (result.isSuccess) {
-                    // ✅ no asumimos forma del objeto devuelto por el repo
-                    // guardamos sesion con el email ingresado; nombre queda null
+                    // 🔹 Rol temporal según email (solo para pruebas)
+                    val role = when {
+                        s.email.contains("admin", ignoreCase = true) -> "ADMINISTRADOR"
+                        s.email.contains("despacho", ignoreCase = true) -> "DESPACHADOR"
+                        else -> "USUARIO"
+                    }
+
                     viewModelScope.launch {
                         session.setSession(
                             logged = true,
                             email = s.email.trim(),
                             name = null,
-                            userId = null
+                            userId = null,
+                            role = role
                         )
                     }
+
                     it.copy(isSubmitting = false, success = true, errorMsg = null)
                 } else {
                     it.copy(
                         isSubmitting = false,
                         success = false,
-                        errorMsg = result.exceptionOrNull()?.message ?: "Error de autenticacion"
+                        errorMsg = result.exceptionOrNull()?.message ?: "Error de autenticación"
                     )
                 }
             }
@@ -185,6 +194,17 @@ class AuthViewModel(
 
             _register.update {
                 if (result.isSuccess) {
+                    // 🔹 Nuevo usuario se registra siempre como USUARIO
+                    viewModelScope.launch {
+                        session.setSession(
+                            logged = true,
+                            email = s.email.trim(),
+                            name = s.name.trim(),
+                            userId = null,
+                            role = "USUARIO"
+                        )
+                    }
+
                     it.copy(isSubmitting = false, success = true, errorMsg = null)
                 } else {
                     it.copy(

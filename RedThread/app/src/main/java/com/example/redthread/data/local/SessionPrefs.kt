@@ -16,6 +16,8 @@ class SessionPrefs(private val context: Context) {
         private val KEY_EMAIL  = stringPreferencesKey("email")
         private val KEY_NAME   = stringPreferencesKey("name")
         private val KEY_USERID = stringPreferencesKey("user_id") // opcional si tu repo maneja ids
+
+        private val KEY_ROLE = stringPreferencesKey("user_role") //maneja los roles de los usuarios
     }
 
     val isLoggedInFlow: Flow<Boolean> =
@@ -27,14 +29,24 @@ class SessionPrefs(private val context: Context) {
     val userNameFlow: Flow<String?> =
         context.dataStore.data.map { it[KEY_NAME] }
 
-    suspend fun setSession(logged: Boolean, email: String?, name: String?, userId: String? = null) {
+    suspend fun setSession(
+        logged: Boolean,
+        email: String?,
+        name: String?,
+        userId: String? = null,
+        role: String? = null
+    ) {
         context.dataStore.edit { prefs ->
             prefs[KEY_LOGGED] = logged
             if (email != null) prefs[KEY_EMAIL] = email else prefs.remove(KEY_EMAIL)
-            if (name  != null) prefs[KEY_NAME]  = name  else prefs.remove(KEY_NAME)
-            if (userId!= null) prefs[KEY_USERID]= userId else prefs.remove(KEY_USERID)
+            if (name != null) prefs[KEY_NAME] = name else prefs.remove(KEY_NAME)
+            if (userId != null) prefs[KEY_USERID] = userId else prefs.remove(KEY_USERID)
+            if (role != null) prefs[KEY_ROLE] = role else prefs.remove(KEY_ROLE)
         }
     }
 
-    suspend fun clearSession() = setSession(false, null, null, null)
+    val userRoleFlow: Flow<String?> =
+        context.dataStore.data.map { it[KEY_ROLE] }
+
+    suspend fun clearSession() = setSession(false, null, null, null, null)
 }

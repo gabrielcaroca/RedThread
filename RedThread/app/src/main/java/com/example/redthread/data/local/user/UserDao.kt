@@ -13,6 +13,9 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(user: UserEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: UserEntity)
+
     // Devuelve un usuario por su email, o null si no existe.
     @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
     suspend fun getByEmail(email: String): UserEntity?
@@ -24,4 +27,5 @@ interface UserDao {
     // Devuelve la lista completa de usuarios (para administración o debug).
     @Query("SELECT * FROM users ORDER BY id ASC")
     suspend fun getAll(): List<UserEntity>
+
 }
