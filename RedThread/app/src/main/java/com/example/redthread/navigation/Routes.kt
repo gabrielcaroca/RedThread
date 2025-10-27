@@ -11,6 +11,8 @@ sealed class Route(val path: String) {
     data object Checkout : Route("pago") // 7
     data object Despachador : Route("despachador") // 8
     data object VistaModerador : Route("vista_moderador")
+
+    data object ProductoDetalle : Route("product")
 }
 
 /*

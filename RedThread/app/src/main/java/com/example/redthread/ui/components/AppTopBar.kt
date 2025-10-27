@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/redthread/ui/components/AppTopBar.kt
 package com.example.redthread.ui.components
 
 import androidx.compose.foundation.Image
@@ -18,23 +17,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Text
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import com.example.redthread.ui.theme.Black
 
 @Composable
 fun AppTopBar(
     onLogoClick: () -> Unit = {},
     onPerfilClick: () -> Unit = {},
-    onCarritoClick: () -> Unit = {}
+    onCarritoClick: () -> Unit = {},
+    cartCount: Int = 0                                     // <<< NUEVO: contador para el badge
 ) {
     val ctx = LocalContext.current
     val logoId = ctx.resources.getIdentifier("logo_redthread", "drawable", ctx.packageName)
 
-    // <<< IMPORTANTE >>>
-    // Aplicamos statusBarsPadding() en el contenedor con fondo
-    // para que el color negro "suba" detrás de la status bar transparente,
-    // sin superponer contenido bajo los iconos del sistema.
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -54,7 +56,7 @@ fun AppTopBar(
                     contentDescription = "Logo",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .height(95.dp)
+                        .height(145.dp)
                         .clickable { onLogoClick() }
                 )
             }
@@ -64,8 +66,37 @@ fun AppTopBar(
             IconButton(onClick = onPerfilClick) {
                 Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = Color.White)
             }
-            IconButton(onClick = onCarritoClick) {
-                Icon(Icons.Outlined.ShoppingCart, contentDescription = "Carrito", tint = Color.White)
+
+            // Icono de carrito con badge
+            Box(modifier = Modifier.wrapContentSize(), contentAlignment = Alignment.TopEnd) {
+                IconButton(onClick = onCarritoClick) {
+                    Icon(Icons.Outlined.ShoppingCart, contentDescription = "Carrito", tint = Color.White)
+                }
+                if (cartCount > 0) {
+                    // Badge redondo arriba a la derecha del icono
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (-2).dp, y = 6.dp)
+                            .size(18.dp)
+                            .drawBehind {
+                                drawCircle(
+                                    color = Color(0xFFE53935), // rojo tipo badge
+                                    radius = size.minDimension / 2f,
+                                    center = Offset(size.width / 2f, size.height / 2f)
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val label = if (cartCount > 9) "+9" else cartCount.toString()
+                        Text(
+                            text = label,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
         }
 
