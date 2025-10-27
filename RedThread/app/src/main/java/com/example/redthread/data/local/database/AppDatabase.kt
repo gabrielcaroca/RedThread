@@ -56,6 +56,7 @@ abstract class AppDatabase : RoomDatabase() {
                                         phone = "+56922222222",
                                         password = "123456"
                                     )
+
                                 )
 
                                 // Inserta usuarios solo si la tabla está vacía

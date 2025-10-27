@@ -21,6 +21,7 @@ import com.example.redthread.ui.screen.HomeScreen
 import com.example.redthread.ui.screen.LoginScreenVm
 import com.example.redthread.ui.screen.RegisterScreenVm
 import com.example.redthread.ui.screen.PerfilScreen
+import com.example.redthread.ui.screen.DespachadorScreen
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.TextPrimary
 import com.example.redthread.ui.viewmodel.AuthViewModel
@@ -65,6 +66,7 @@ fun AppNavGraph(
                 .padding(innerPadding)
                 .background(Black)
         ) {
+            //  pantalla principal
             composable(Route.Home.path) {
                 HomeScreen(
                     onProductoClick = { /* detalle producto */ },
@@ -74,6 +76,7 @@ fun AppNavGraph(
                 )
             }
 
+            //  pantalla login
             composable(Route.Login.path) {
                 LoginScreenVm(
                     vm = authViewModel,
@@ -89,6 +92,7 @@ fun AppNavGraph(
                 )
             }
 
+            //  pantalla registro
             composable(Route.Register.path) {
                 RegisterScreenVm(
                     vm = authViewModel,
@@ -101,6 +105,7 @@ fun AppNavGraph(
                 )
             }
 
+            //  pantalla perfil (con navegación según rol)
             composable(Route.Perfil.path) {
                 if (!header.isLoggedIn) {
                     LaunchedEffect(Unit) {
@@ -117,11 +122,12 @@ fun AppNavGraph(
                         role = role,
                         onLogout = { authViewModel.logout() },
                         onGoAdmin = { navController.navigate(Route.VistaModerador.path) },
-                        onGoDespachador = { navController.navigate(Route.Despachador.path) }
+                        onGoDespachador = { navController.navigate(Route.Despachador.path) } //  nueva ruta
                     )
                 }
             }
 
+            // pantalla carrito
             composable(Route.Carrito.path) {
                 Box(
                     modifier = Modifier
@@ -133,8 +139,14 @@ fun AppNavGraph(
                 }
             }
 
+            //  pantalla del administrador/desarrollador
             composable(Route.VistaModerador.path) {
                 DeveloperScreen(vm = androidx.lifecycle.viewmodel.compose.viewModel())
+            }
+
+            //  pantalla del despachador
+            composable(Route.Despachador.path) {
+                DespachadorScreen()
             }
         }
     }
