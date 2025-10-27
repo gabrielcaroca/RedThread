@@ -1,176 +1,219 @@
 package com.example.redthread.ui.screen
 
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.redthread.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.redthread.ui.theme.Black
+import com.example.redthread.ui.theme.TextPrimary
+import com.example.redthread.ui.theme.TextSecondary
+import com.example.redthread.ui.viewmodel.DespachadorViewModel
+import com.example.redthread.ui.viewmodel.Pedido
+import com.example.redthread.ui.viewmodel.Ruta
 
-// vista principal del despachador
 @Composable
-fun DespachadorScreen() {
+fun DespachadorScreen(vm: DespachadorViewModel = viewModel()) {
 
-    // lista de pedidos simulada (puedes reemplazar por tu VM)
-    var pedidos by remember {
-        mutableStateOf(
-            listOf(
-                mutableStateOf(Triple("Pedido #1", "Preparado", "ph_polera")),
-                mutableStateOf(Triple("Pedido #2", "En camino", "ph_zapatillas")),
-                mutableStateOf(Triple("Pedido #3", "Entregado", "ph_chaqueta")),
-                mutableStateOf(Triple("Pedido #4", "Cancelado", "ph_pantalon"))
-            )
-        )
-    }
+    val rutaSeleccionada by vm.rutaSeleccionada
+    val pedidos = vm.pedidos
 
-    // fondo negro del tema redthread
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Black)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
-        Text(
-            text = "Despachos asignados",
-            color = TextPrimary,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text(text = "Panel de Despacho", color = TextPrimary, fontSize = 20.sp)
+        Spacer(Modifier.height(8.dp))
 
-        Spacer(Modifier.height(12.dp))
+        // --- RUTAS ---
+        Text("Rutas disponibles", color = TextSecondary)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            vm.rutas.forEach { ruta ->
+                val selected = ruta == rutaSeleccionada
+                Button(
+                    onClick = { vm.cargarPedidos(ruta) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selected) Color(0xFFDD3333) else Color(0xFF2A2A2A)
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("${ruta.nombre}\n$${ruta.precio}", color = Color.White)
+                }
+            }
+        }
 
-        // lista de pedidos
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(pedidos) { pedidoState ->
+        Spacer(Modifier.height(16.dp))
 
-                val pedido = pedidoState.value
-                val nombre = pedido.first
-                val estado = pedido.second
-                val imagen = pedido.third
+        if (rutaSeleccionada == null) {
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Selecciona una ruta para ver los pedidos", color = TextSecondary)
+            }
+        } else {
+            Text(
+                "Despachos (${rutaSeleccionada!!.nombre})",
+                color = TextPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
 
-                PedidoCard(
-                    nombre = nombre,
-                    estado = estado,
-                    imagen = imagen,
-                    onEstadoChange = { nuevo ->
-                        // actualiza el estado del pedido al presionar el boton
-                        pedidoState.value = pedido.copy(second = nuevo)
-                    }
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                itemsIndexed(pedidos) { index, pedido ->
+                    PedidoCard(
+                        pedido = pedido,
+                        onTomarFoto = { uri -> vm.guardarEvidencia(index, uri) },
+                        onConfirmar = { vm.confirmarEntrega(index) },
+                        onDevolver = { vm.marcarDevuelto(index) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PedidoCard(
+    pedido: Pedido,
+    onTomarFoto: (Uri) -> Unit,
+    onConfirmar: () -> Unit,
+    onDevolver: () -> Unit
+) {
+    val context = LocalContext.current
+    val imgId = context.resources.getIdentifier(pedido.imagen, "drawable", context.packageName)
+
+    var fotoBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    // --- Lanza cámara sin FileProvider ---
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        bitmap?.let {
+            fotoBitmap = it
+            // crea una uri temporal simulada
+            val tempUri = Uri.parse("content://temp/${pedido.nombre}")
+            onTomarFoto(tempUri)
+        }
+    }
+
+    val puedeConfirmar = fotoBitmap != null && !pedido.entregado && !pedido.devuelto
+    val puedeDevolver = fotoBitmap != null && !pedido.entregado && !pedido.devuelto
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF202020))
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (imgId != 0) {
+                Image(
+                    painter = painterResource(id = imgId),
+                    contentDescription = pedido.nombre,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .padding(end = 10.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Column {
+                Text(pedido.nombre, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text(
+                    when {
+                        pedido.entregado -> "Entregado ✅"
+                        pedido.devuelto -> "Devuelto al almacén 🏠"
+                        fotoBitmap != null -> "Evidencia lista 📸"
+                        else -> "Pendiente ⏳"
+                    },
+                    color = when {
+                        pedido.entregado -> Color(0xFF4CAF50)
+                        pedido.devuelto -> Color(0xFFF44336)
+                        fotoBitmap != null -> Color(0xFFFFC107)
+                        else -> TextSecondary
+                    },
+                    fontSize = 13.sp
                 )
             }
         }
-    }
-}
 
-// composable que muestra una card por pedido
-@Composable
-private fun PedidoCard(
-    nombre: String,
-    estado: String,
-    imagen: String,
-    onEstadoChange: (String) -> Unit
-) {
-    val ctx = LocalContext.current
-    val imgId = ctx.resources.getIdentifier(imagen, "drawable", ctx.packageName)
+        Spacer(Modifier.height(10.dp))
 
-    // definimos color segun estado
-    val colorEstado = when (estado) {
-        "Preparado" -> Color(0xFFFFC107) // amarillo
-        "En camino" -> Color(0xFF9E9E9E) // gris
-        "Entregado" -> Color(0xFF4CAF50) // verde
-        "Cancelado" -> Color(0xFFF44336) // rojo
-        else -> TextSecondary
-    }
-
-    Surface(
-        color = CardGray,
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp)) {
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+        // --- FILA DE BOTONES ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Tomar Foto
+            Button(
+                onClick = { launcher.launch(null) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDD3333)),
+                modifier = Modifier.weight(1f)
             ) {
-                if (imgId != 0) {
-                    Image(
-                        painter = painterResource(id = imgId),
-                        contentDescription = nombre,
-                        modifier = Modifier
-                            .size(70.dp)
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(70.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(CardGrayElevated)
-                    )
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                Column {
-                    Text(nombre, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("Estado: $estado", color = colorEstado, fontSize = 14.sp)
-                    Text("Entrega estimada: 28/10/2025", color = TextSecondary, fontSize = 12.sp)
-                }
+                Text("Tomar Foto", color = Color.White)
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+            // Confirmar Entrega
+            Button(
+                onClick = onConfirmar,
+                enabled = puedeConfirmar,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (puedeConfirmar)
+                        Color(0xFF4CAF50) else Color(0xFF424242)
+                ),
+                modifier = Modifier.weight(1f)
             ) {
-                EstadoButton("Preparado", estado, onEstadoChange)
-                EstadoButton("En camino", estado, onEstadoChange)
-                EstadoButton("Entregado", estado, onEstadoChange)
-                EstadoButton("Cancelado", estado, onEstadoChange)
+                Text("Confirmar", color = Color.White)
+            }
+
+            // Devolver al Almacén
+            Button(
+                onClick = onDevolver,
+                enabled = puedeDevolver,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (puedeDevolver)
+                        Color(0xFFF44336) else Color(0xFF424242)
+                ),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Devolver", color = Color.White)
             }
         }
-    }
-}
 
-// boton reutilizable que cambia el estado del pedido
-@Composable
-private fun EstadoButton(
-    label: String,
-    estadoActual: String,
-    onEstadoChange: (String) -> Unit
-) {
-    val isSelected = label == estadoActual
-    val bg = if (isSelected) AccentRed else CardGrayElevated
-    val textColor = if (isSelected) TextPrimary else TextSecondary
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .clickable { onEstadoChange(label) }
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-    ) {
-        Text(label, color = textColor, fontSize = 12.sp)
+        fotoBitmap?.let {
+            Spacer(Modifier.height(8.dp))
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = "Foto evidencia",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .padding(top = 4.dp),
+                contentScale = ContentScale.Crop
+            )
+            Text("Evidencia guardada ✅", color = TextSecondary, fontSize = 12.sp)
+        }
     }
 }
