@@ -1,0 +1,19 @@
+package com.example.redthread.data.local.producto
+
+import androidx.room.*
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ProductoDao {
+    @Query("SELECT * FROM productos WHERE categoria = :categoria")
+    fun observarPorCategoria(categoria: String): Flow<List<ProductoEntity>>
+
+    @Query("SELECT * FROM productos")
+    fun observarTodos(): Flow<List<ProductoEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(producto: ProductoEntity)
+
+    @Query("SELECT COUNT(*) FROM productos")
+    suspend fun count(): Int
+}

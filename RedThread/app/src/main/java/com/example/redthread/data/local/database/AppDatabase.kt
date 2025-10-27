@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.redthread.data.local.producto.ProductoDao
+import com.example.redthread.data.local.producto.ProductoEntity
 import com.example.redthread.data.local.user.UserDao
 import com.example.redthread.data.local.user.UserEntity
 import com.example.redthread.domain.enums.UserRole
@@ -13,24 +15,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-// Define la base de datos local con Room
 @Database(
-    entities = [UserEntity::class],
-    version = 1,
-    exportSchema = true // Mantener true para inspeccionar el esquema
+    entities = [UserEntity::class, ProductoEntity::class],
+    version = 3, // sube la versión porque agregaste una nueva entidad
+    exportSchema = true
 )
-@TypeConverters(Converters::class) // 👈 Conversión para UserRole (enum)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
-    // Exponer el DAO de usuarios
     abstract fun userDao(): UserDao
+    abstract fun productoDao(): ProductoDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
         private const val DB_NAME = "redthread.db"
 
-        // Singleton para obtener la instancia de la base de datos
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -38,14 +38,12 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DB_NAME
                 )
-                    // Callback de creación inicial
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             CoroutineScope(Dispatchers.IO).launch {
                                 val dao = getInstance(context).userDao()
 
-                                // Precarga de usuarios iniciales
                                 val seed = listOf(
                                     UserEntity(
                                         name = "Admin",
@@ -70,14 +68,10 @@ abstract class AppDatabase : RoomDatabase() {
                                     )
                                 )
 
-                                // Inserta usuarios solo si la tabla está vacía
-                                if (dao.count() == 0) {
-                                    seed.forEach { dao.insert(it) }
-                                }
+                                if (dao.count() == 0) seed.forEach { dao.insert(it) }
                             }
                         }
                     })
-                    // Recrea la DB si cambias la versión y no defines migraciones
                     .fallbackToDestructiveMigration()
                     .build()
 

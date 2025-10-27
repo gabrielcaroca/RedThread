@@ -18,6 +18,8 @@ import com.example.redthread.ui.viewmodel.AuthViewModel
 import com.example.redthread.domain.enums.UserRole
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.redthread.ui.viewmodel.CartViewModel
+import com.example.redthread.ui.viewmodel.DeveloperViewModel
+import com.example.redthread.ui.viewmodel.ProductoViewModel
 import java.net.URLEncoder
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -150,7 +152,13 @@ fun AppNavGraph(
 
             // Admin/Dev
             composable(Route.VistaModerador.path) {
-                DeveloperScreen(vm = androidx.lifecycle.viewmodel.compose.viewModel())
+                val developerVm: DeveloperViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                val productoVm: ProductoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+                DeveloperScreen(
+                    vm = developerVm,
+                    vmProducto = productoVm
+                )
             }
 
             // Despachador
