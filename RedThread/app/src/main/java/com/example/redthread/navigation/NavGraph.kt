@@ -71,7 +71,8 @@ fun AppNavGraph(
                     onProductoClick = { p ->
                         val nombre = URLEncoder.encode(p.nombre, StandardCharsets.UTF_8.toString())
                         val precio = URLEncoder.encode(p.precio, StandardCharsets.UTF_8.toString())
-                        val categoria = URLEncoder.encode(p.categoria, StandardCharsets.UTF_8.toString())
+                        val categoria =
+                            URLEncoder.encode(p.categoria, StandardCharsets.UTF_8.toString())
 
                         navController.navigate(
                             "${Route.ProductoDetalle.path}?id=${p.id}&nombre=$nombre&precio=$precio&categoria=$categoria"
@@ -135,7 +136,16 @@ fun AppNavGraph(
 
             // Carrito
             composable(Route.Carrito.path) {
-                CarroScreen(vm = cartVm)
+                CarroScreen(
+                    vm = cartVm,
+                    onGoCheckout = {
+                        navController.navigate(Route.Checkout.path) {launchSingleTop = true}
+                    }
+                )
+            }
+
+            composable (Route.Checkout.path) {
+                CheckoutScreen()
             }
 
             // Admin/Dev
@@ -151,12 +161,15 @@ fun AppNavGraph(
             // Detalle de producto (query params) — ✅ decodificación para evitar "Hoodie+arena"
             composable("${Route.ProductoDetalle.path}?id={id}&nombre={nombre}&precio={precio}&categoria={categoria}") { backStack ->
                 val id = backStack.arguments?.getString("id")?.toIntOrNull() ?: -1
-
-                fun dec(s: String?): String = URLDecoder.decode(s ?: "", StandardCharsets.UTF_8.toString())
+                fun dec(s: String?) = java.net.URLDecoder.decode(
+                    s ?: "",
+                    java.nio.charset.StandardCharsets.UTF_8.toString()
+                )
 
                 val nombre = dec(backStack.arguments?.getString("nombre")).ifBlank { "Producto" }
                 val precio = dec(backStack.arguments?.getString("precio")).ifBlank { "$0" }
-                val categoria = dec(backStack.arguments?.getString("categoria")).ifBlank { "polera" }
+                val categoria =
+                    dec(backStack.arguments?.getString("categoria")).ifBlank { "polera" }
 
                 DetalleProductoScreen(
                     id = id,
@@ -165,7 +178,11 @@ fun AppNavGraph(
                     categoria = categoria,
                     cartVm = cartVm,
                     onAddedToCart = {
-                        navController.navigate(Route.Carrito.path) { launchSingleTop = true }
+                        // ✅ Volver a Home (no al carrito)
+                        navController.navigate(Route.Home.path) {
+                            launchSingleTop = true
+                            popUpTo(Route.Home.path) { inclusive = false }
+                        }
                     }
                 )
             }

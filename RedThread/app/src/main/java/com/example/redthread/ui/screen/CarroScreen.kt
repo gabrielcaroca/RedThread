@@ -20,30 +20,44 @@ import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.TextPrimary
 import com.example.redthread.ui.theme.TextSecondary
 import com.example.redthread.ui.viewmodel.CartViewModel
+import java.util.Locale
 
 @Composable
 fun CarroScreen(
-    vm: CartViewModel
+    vm: CartViewModel,
+    onGoCheckout: () -> Unit = {}            // <<< NUEVO: callback para ir al checkout
 ) {
     val items by vm.items.collectAsState()
+
+    // --- Utils para CLP ---
+    fun parsePriceToInt(raw: String): Int {
+        // "$50.000" -> 50000
+        val digits = raw.filter { it.isDigit() }
+        return digits.toIntOrNull() ?: 0
+    }
+    fun formatCLP(amount: Int): String {
+        val s = String.format(Locale.US, "%,d", amount) // "50,000"
+        return "$" + s.replace(',', '.')                // "$50.000"
+    }
+
+    val subtotal = items.sumOf { parsePriceToInt(it.precio) * it.cantidad }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Black)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         Text(text = "Carrito", color = TextPrimary, fontSize = 20.sp)
 
         Spacer(Modifier.height(12.dp))
-
         Divider(color = Color.White.copy(alpha = 0.08f))
-
         Spacer(Modifier.height(12.dp))
 
+        // Lista scrollable
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f)     // <<< deja espacio para el footer fijo
         ) {
             items(items) { it ->
                 Row(
@@ -77,6 +91,20 @@ fun CarroScreen(
             }
         }
 
+        // --- FOOTER FIJO: Subtotal + botones ---
+        Spacer(Modifier.height(12.dp))
+        Divider(color = Color.White.copy(alpha = 0.12f))
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Subtotal", color = TextSecondary)
+            Text(formatCLP(subtotal), color = TextPrimary, fontSize = 18.sp)
+        }
+
         Spacer(Modifier.height(12.dp))
 
         Row(
@@ -89,7 +117,8 @@ fun CarroScreen(
             ) { Text("Vaciar", color = Color.White) }
 
             Button(
-                onClick = { /* TODO: flujo de pago */ },
+                onClick = onGoCheckout,                                 // <<< ir a Checkout
+                enabled = items.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White)
             ) { Text("Ir a pagar", color = Color.Black) }
         }

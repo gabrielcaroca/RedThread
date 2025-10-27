@@ -1,5 +1,6 @@
 package com.example.redthread.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,7 +38,7 @@ fun DetalleProductoScreen(
     nombre: String,
     precio: String,
     categoria: String,
-    onAddedToCart: () -> Unit = {},
+    onAddedToCart: () -> Unit = {},   // ahora se usará para volver a Home
     cartVm: CartViewModel
 ) {
     val ctx = LocalContext.current
@@ -95,7 +96,7 @@ fun DetalleProductoScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // Dropdowns ESTABLES
+        // Dropdowns
         SimpleDropdownField(
             label = "Talla",
             options = tallas,
@@ -126,9 +127,12 @@ fun DetalleProductoScreen(
                         cantidad = 1
                     )
                 )
+                // ✅ Toast de confirmación
+                Toast.makeText(ctx, "Producto agregado al carrito", Toast.LENGTH_SHORT).show()
+                // ✅ Vuelve a inicio (se hace desde NavGraph via onAddedToCart)
                 scope.launch { onAddedToCart() }
             },
-            enabled = canAdd, // ✅ deshabilitado hasta elegir ambos
+            enabled = canAdd,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -157,18 +161,17 @@ private fun SimpleDropdownField(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // El menú se ancla a este Box
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = true } // ✅ el contenedor maneja el click
+            .clickable { expanded = true }
     ) {
         OutlinedTextField(
             value = selected ?: "Selecciona $label",
             onValueChange = {},
             readOnly = true,
-            enabled = false,                 // ✅ no roba el click
-            isError = selected == null,      // borde rojo si falta
+            enabled = false,
+            isError = selected == null,
             label = { Text(label) },
             trailingIcon = {
                 androidx.compose.material3.Icon(

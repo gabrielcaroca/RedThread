@@ -8,11 +8,12 @@ sealed class Route(val path: String) {
     data object Carrito : Route("carro")//4
     data object DetalleProducto : Route("detalle_producto") //5
     data object Perfil : Route("perfil") // 6
-    data object Checkout : Route("pago") // 7
+    data object Checkout : Route("checkout") // 7
     data object Despachador : Route("despachador") // 8
     data object VistaModerador : Route("vista_moderador")
 
     data object ProductoDetalle : Route("product")
+
 }
 
 /*
