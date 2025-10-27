@@ -108,20 +108,16 @@ class AuthViewModel(
 
             _login.update {
                 if (result.isSuccess) {
-                    // 🔹 Rol temporal según email (solo para pruebas)
-                    val role = when {
-                        s.email.contains("admin", ignoreCase = true) -> "ADMINISTRADOR"
-                        s.email.contains("despacho", ignoreCase = true) -> "DESPACHADOR"
-                        else -> "USUARIO"
-                    }
+                    val user = result.getOrNull()
 
+                    // ✅ Guarda el rol real del usuario desde SQLite
                     viewModelScope.launch {
                         session.setSession(
                             logged = true,
-                            email = s.email.trim(),
-                            name = null,
-                            userId = null,
-                            role = role
+                            email = user?.email ?: s.email.trim(),
+                            name = user?.name,
+                            userId = user?.id?.toString(),
+                            role = user?.role?.name ?: "USUARIO" // ✅ aquí está corregido
                         )
                     }
 
@@ -194,7 +190,7 @@ class AuthViewModel(
 
             _register.update {
                 if (result.isSuccess) {
-                    // 🔹 Nuevo usuario se registra siempre como USUARIO
+                    // ✅ Todos los nuevos usuarios son USUARIO
                     viewModelScope.launch {
                         session.setSession(
                             logged = true,

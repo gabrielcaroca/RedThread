@@ -4,7 +4,7 @@ import com.example.redthread.ui.viewmodel.DeveloperViewModel
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
-enum class DevTab { PRODUCTOS, DESPACHOS, USUARIOS }
+enum class DevTab { PRODUCTOS, PEDIDOS, RUTAS }
 
 @Composable
 fun DeveloperScreen(vm: DeveloperViewModel) {
@@ -22,11 +22,17 @@ fun DeveloperScreen(vm: DeveloperViewModel) {
 
     when (tab) {
         DevTab.PRODUCTOS -> ProductosTab(vm)
-        DevTab.DESPACHOS -> DespachosTab(vm)
-        DevTab.USUARIOS  -> UsuariosTab(vm)
+        DevTab.PEDIDOS -> DespachosTab(vm)
+        DevTab.RUTAS  -> UsuariosTab(vm)
     }
 }
 
-@Composable fun ProductosTab(vm: DeveloperViewModel) { Text("Productos") }
-@Composable fun DespachosTab(vm: DeveloperViewModel) { Text("Despachos") }
-@Composable fun UsuariosTab(vm: DeveloperViewModel)  { Text("Usuarios") }
+@Composable fun ProductosTab(vm: DeveloperViewModel) {
+
+}
+@Composable fun DespachosTab(vm: DeveloperViewModel) {
+
+}
+@Composable fun UsuariosTab(vm: DeveloperViewModel)  {
+
+}

@@ -3,6 +3,8 @@ package com.example.redthread.data.local.user
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.redthread.domain.enums.UserRole
+import kotlin.Boolean
+import kotlin.String
 
 @Entity(tableName = "users")
 data class UserEntity(
