@@ -10,7 +10,6 @@ import com.example.redthread.data.local.producto.ProductoEntity
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-// ✅ Ahora solo existen Hombre y Mujer como categorías
 enum class Categoria { Featured, Hombre, Mujer }
 enum class Subcategoria { Zapatilla, Pantalon, Polera, Chaqueta, Accesorio }
 
@@ -21,12 +20,15 @@ class ProductoViewModel(app: Application) : AndroidViewModel(app) {
     private val _categoria = MutableStateFlow(Categoria.Featured)
     val categoria: StateFlow<Categoria> = _categoria
 
-
-    // ✅ En DeveloperScreen deben mostrarse todos los productos
+    // ✅ Todos los productos (para DeveloperScreen)
     val productos: StateFlow<List<ProductoEntity>> =
         dao.observarTodos()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    // ✅ Solo los destacados (para HomeScreen)
+    val destacados: StateFlow<List<ProductoEntity>> =
+        dao.obtenerDestacados()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         viewModelScope.launch { precargarDatos() }
@@ -36,7 +38,6 @@ class ProductoViewModel(app: Application) : AndroidViewModel(app) {
         _categoria.value = c
     }
 
-    // ✅ Datos de ejemplo precargados
     private suspend fun precargarDatos() {
         if (dao.count() > 0) return
 

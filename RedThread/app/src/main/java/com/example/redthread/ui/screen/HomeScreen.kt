@@ -1,24 +1,8 @@
 package com.example.redthread.ui.screen
 
-// ========================
-// imports basicos
-// ========================
 import android.content.res.Resources
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat       // <- necesario para la corutina de shimmer
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,15 +11,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset                 // <- para start/end del brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -48,17 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.redthread.ui.theme.Black
-import com.example.redthread.ui.theme.CardGray
-import com.example.redthread.ui.theme.CardGrayElevated
-import com.example.redthread.ui.theme.TextPrimary
-import com.example.redthread.ui.theme.TextSecondary
-import com.example.redthread.ui.viewmodel.HomeViewModel
+import com.example.redthread.ui.theme.*
+import com.example.redthread.ui.viewmodel.ProductoViewModel
 import kotlinx.coroutines.delay
 
-// ========================
-// modelo de filtro y dto ui
-// ========================
+// ------------------------
+// filtros de vista
+// ------------------------
 enum class Filtro { TODOS, HOMBRES, MUJERES }
 
 data class ProductoUi(
@@ -69,33 +47,25 @@ data class ProductoUi(
     val target: Filtro = Filtro.TODOS
 )
 
-// ========================
-// home principal
-// objetivos:
-// - mostrar skeletons 3s usando corutinas (sin bloquear hilo ui)
-// - shimmer durante la carga
-// - luego crossfade a la grilla real
-// ========================
+// ------------------------
+// pantalla principal
+// ------------------------
 @Composable
 fun HomeScreen(
     onProductoClick: (ProductoUi) -> Unit = {},
-    onCarritoClick: () -> Unit = {},   // no usado aqui, lo dejo para compatibilidad
-    onPerfilClick: () -> Unit = {},    // no usado aqui, lo dejo para compatibilidad
-    viewModel: HomeViewModel = viewModel()
+    onCarritoClick: () -> Unit = {},
+    onPerfilClick: () -> Unit = {},
+    vmProducto: ProductoViewModel = viewModel()
 ) {
-    // estado de tab
     var filtro by remember { mutableStateOf(Filtro.TODOS) }
 
-    // productos locales del vm
-    val productos by viewModel.productos.collectAsState()
+    val productos by vmProducto.productos.collectAsState()
+    val destacados by vmProducto.destacados.collectAsState()
 
-    // bandera de carga controlada por corutina
     var isLoading by remember { mutableStateOf(true) }
 
-    // launchedEffect corre en una corutina de compose
-    // delay es suspend y no bloquea el hilo principal
     LaunchedEffect(Unit) {
-        delay(1000)          // simula carga de 1s
+        delay(1000)
         isLoading = false
     }
 
@@ -103,7 +73,6 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Black)
-            .padding(top = 0.dp)
     ) {
         TabsAnimated(
             selected = filtro,
@@ -112,14 +81,43 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // crossfade entre skeletons y contenido real
         Crossfade(targetState = isLoading, label = "homeCrossfadeLoading") { loading ->
             if (loading) {
                 SkeletonGrid()
             } else {
+                val lista = when (filtro) {
+                    Filtro.TODOS -> destacados.map {
+                        ProductoUi(
+                            id = it.id,
+                            nombre = it.nombre,
+                            precio = "$${"%,d".format(it.precio)}",
+                            categoria = it.subcategoria,
+                            target = Filtro.TODOS
+                        )
+                    }
+                    Filtro.HOMBRES -> productos.filter { it.categoria.lowercase() == "hombre" }.map {
+                        ProductoUi(
+                            id = it.id,
+                            nombre = it.nombre,
+                            precio = "$${"%,d".format(it.precio)}",
+                            categoria = it.subcategoria,
+                            target = Filtro.HOMBRES
+                        )
+                    }
+                    Filtro.MUJERES -> productos.filter { it.categoria.lowercase() == "mujer" }.map {
+                        ProductoUi(
+                            id = it.id,
+                            nombre = it.nombre,
+                            precio = "$${"%,d".format(it.precio)}",
+                            categoria = it.subcategoria,
+                            target = Filtro.MUJERES
+                        )
+                    }
+                }
+
                 AnimatedProductGrid(
                     filtro = filtro,
-                    productos = productos,
+                    productos = lista,
                     onProductoClick = onProductoClick
                 )
             }
@@ -127,9 +125,9 @@ fun HomeScreen(
     }
 }
 
-// ========================
-// grilla real con transicion lateral al cambiar de tab
-// ========================
+// ------------------------
+// grilla con animación al cambiar tab
+// ------------------------
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AnimatedProductGrid(
@@ -137,7 +135,6 @@ private fun AnimatedProductGrid(
     productos: List<ProductoUi>,
     onProductoClick: (ProductoUi) -> Unit
 ) {
-    // helper para decidir direccion del slide
     fun Filtro.idx(): Int = when (this) {
         Filtro.TODOS -> 0
         Filtro.HOMBRES -> 1
@@ -147,44 +144,30 @@ private fun AnimatedProductGrid(
     AnimatedContent(
         targetState = filtro,
         transitionSpec = {
-            val goingRight = targetState.idx() > initialState.idx()
-
+            val right = targetState.idx() > initialState.idx()
             val slideIn = slideInHorizontally(
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) { full -> if (goingRight) +full else -full }
-
+                tween(300, easing = FastOutSlowInEasing)
+            ) { full -> if (right) +full else -full }
             val slideOut = slideOutHorizontally(
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) { full -> if (goingRight) -full else +full }
-
-            (slideIn + fadeIn(tween(250))) togetherWith (slideOut + fadeOut(tween(200)))
+                tween(300, easing = FastOutSlowInEasing)
+            ) { full -> if (right) -full else +full }
+            (slideIn + fadeIn()) togetherWith (slideOut + fadeOut())
         },
         label = "gridTransition"
-    ) { filtroActual ->
-        val filtrados = remember(productos, filtroActual) {
-            productos.filter { filtroActual == Filtro.TODOS || it.target == filtroActual }
-        }
-
-        val gridState = rememberLazyGridState()
-
+    ) { _ ->
         LazyVerticalGrid(
-            state = gridState,
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            itemsIndexed(filtrados, key = { _, it -> it.id }) { index, p ->
+            items(productos, key = { it.id }) { p ->
                 ProductCard(
                     producto = p,
                     onClick = { onProductoClick(p) },
-                    // uso animateItemPlacement por compatibilidad amplia
                     modifier = Modifier.animateItemPlacement(
-                        animationSpec = tween(
-                            durationMillis = 300 + (index % 6) * 20,
-                            easing = FastOutSlowInEasing
-                        )
+                        animationSpec = tween(300, easing = FastOutSlowInEasing)
                     )
                 )
             }
@@ -192,15 +175,13 @@ private fun AnimatedProductGrid(
     }
 }
 
-// ========================
-// grid de skeletons (mismo layout que el real)
-// ========================
+// ------------------------
+// grilla de carga shimmer
+// ------------------------
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SkeletonGrid(
-    skeletonCount: Int = 8
-) {
-    val placeholders = remember(skeletonCount) { List(skeletonCount) { it } }
+private fun SkeletonGrid(skeletonCount: Int = 8) {
+    val placeholders = remember { List(skeletonCount) { it } }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -209,64 +190,43 @@ private fun SkeletonGrid(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(placeholders, key = { it }) { index ->
+        items(placeholders) { index ->
             SkeletonCard(
                 modifier = Modifier.animateItemPlacement(
-                    animationSpec = tween(
-                        durationMillis = 300 + (index % 6) * 20,
-                        easing = FastOutSlowInEasing
-                    )
+                    tween(300 + (index % 6) * 20, easing = FastOutSlowInEasing)
                 )
             )
         }
     }
 }
 
-// ========================
-// shimmer brush para skeletons
-// detalle: uso rememberInfiniteTransition + animateFloat
-// para desplazar un gradiente lineal horizontal
-// ========================
+// ------------------------
+// shimmer brush
+// ------------------------
 @Composable
 private fun rememberShimmerBrush(): Brush {
-    val shimmerColors = listOf(
-        Color(0xFF2A2A2A),
-        Color(0xFF3A3A3A),
-        Color(0xFF2A2A2A)
-    )
-
+    val colors = listOf(Color(0xFF2A2A2A), Color(0xFF3A3A3A), Color(0xFF2A2A2A))
     val transition = rememberInfiniteTransition(label = "skeletonShimmer")
     val progress by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "skeletonShift"
     )
-
-    // offset horizontal en pixeles logicos
-    val startX = 0f + progress * 600f
+    val startX = progress * 600f
     val endX = startX + 300f
-
-    // uso offset tipado para evitar problemas de inferencia
-    return Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(startX, 0f),
-        end = Offset(endX, 0f)
-    )
+    return Brush.linearGradient(colors, Offset(startX, 0f), Offset(endX, 0f))
 }
 
-// ========================
-// card skeleton (mismo alto de imagen y lineas para titulo/precio)
-// ========================
+// ------------------------
+// card placeholder
+// ------------------------
 @Composable
-private fun SkeletonCard(
-    modifier: Modifier = Modifier
-) {
+private fun SkeletonCard(modifier: Modifier = Modifier) {
     val shimmer = rememberShimmerBrush()
-
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -279,9 +239,9 @@ private fun SkeletonCard(
                 .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                 .background(shimmer)
         )
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth(0.85f)
                     .height(18.dp)
                     .clip(RoundedCornerShape(6.dp))
@@ -289,7 +249,7 @@ private fun SkeletonCard(
             )
             Spacer(Modifier.height(8.dp))
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth(0.45f)
                     .height(14.dp)
                     .clip(RoundedCornerShape(6.dp))
@@ -299,14 +259,11 @@ private fun SkeletonCard(
     }
 }
 
-// ========================
-// tabs con indicador deslizante
-// ========================
+// ------------------------
+// tabs con animación
+// ------------------------
 @Composable
-private fun TabsAnimated(
-    selected: Filtro,
-    onSelect: (Filtro) -> Unit
-) {
+private fun TabsAnimated(selected: Filtro, onSelect: (Filtro) -> Unit) {
     val items = listOf(
         Filtro.TODOS to "Principal",
         Filtro.HOMBRES to "Hombres",
@@ -314,20 +271,9 @@ private fun TabsAnimated(
     )
 
     val tabWidth: Dp = 100.dp
-    val selectedIndex = items.indexOfFirst { it.first == selected }.coerceAtLeast(0)
-
-    val targetOffset = (selectedIndex * tabWidth.value)
-    val offsetAnim by animateFloatAsState(
-        targetValue = targetOffset,
-        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
-        label = "tabOffset"
-    )
-
-    val widthAnim by animateDpAsState(
-        targetValue = tabWidth,
-        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
-        label = "tabWidth"
-    )
+    val idx = items.indexOfFirst { it.first == selected }.coerceAtLeast(0)
+    val offset by animateFloatAsState(idx * tabWidth.value, tween(350), label = "")
+    val width by animateDpAsState(tabWidth, tween(350), label = "")
 
     Box(Modifier.fillMaxWidth()) {
         Row(
@@ -336,23 +282,21 @@ private fun TabsAnimated(
                 .padding(horizontal = 20.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            items.forEachIndexed { idx, pair ->
-                val isSelected = idx == selectedIndex
+            items.forEachIndexed { i, (f, t) ->
+                val sel = i == idx
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .width(tabWidth)
-                        .clickable { onSelect(pair.first) }
+                        .clickable { onSelect(f) }
                         .padding(vertical = 8.dp)
                 ) {
-                    Crossfade(targetState = isSelected, label = "tabText") { sel ->
-                        Text(
-                            text = pair.second,
-                            color = if (sel) TextPrimary else TextSecondary,
-                            fontSize = 16.sp,
-                            fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium
-                        )
-                    }
+                    Text(
+                        text = t,
+                        color = if (sel) TextPrimary else TextSecondary,
+                        fontSize = 16.sp,
+                        fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium
+                    )
                     Spacer(Modifier.height(10.dp))
                 }
             }
@@ -362,17 +306,17 @@ private fun TabsAnimated(
             Modifier
                 .padding(horizontal = 20.dp)
                 .height(2.dp)
-                .width(widthAnim)
-                .offset(x = offsetAnim.dp)
+                .width(width)
+                .offset(x = offset.dp)
                 .background(Color.White)
                 .zIndex(1f)
         )
     }
 }
 
-// ========================
-// card real del producto
-// ========================
+// ------------------------
+// card de producto
+// ------------------------
 @Composable
 private fun ProductCard(
     producto: ProductoUi,
@@ -380,11 +324,11 @@ private fun ProductCard(
     modifier: Modifier = Modifier
 ) {
     val ctx = LocalContext.current
-    val drawableName = when (producto.categoria) {
+    val drawableName = when (producto.categoria.lowercase()) {
         "polera" -> "ph_polera"
         "chaqueta" -> "ph_chaqueta"
         "pantalon" -> "ph_pantalon"
-        "zapatillas" -> "ph_zapatillas"
+        "zapatilla", "zapatillas" -> "ph_zapatillas"
         "accesorio" -> "ph_accesorio"
         else -> "ph_polera"
     }
@@ -415,7 +359,7 @@ private fun ProductCard(
                 )
             } else {
                 Box(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxSize()
                         .padding(8.dp)
                         .clip(RoundedCornerShape(12.dp))
@@ -424,9 +368,9 @@ private fun ProductCard(
             }
         }
 
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Text(
-                text = producto.nombre,
+                producto.nombre,
                 color = TextPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -434,21 +378,18 @@ private fun ProductCard(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(4.dp))
-            Text(
-                text = producto.precio,
-                color = TextSecondary,
-                fontSize = 14.sp
-            )
+            Text(producto.precio, color = TextSecondary, fontSize = 14.sp)
         }
     }
 }
 
-// ========================
-// helpers de recursos
-// ========================
+// ------------------------
+// helpers
+// ------------------------
 private fun Resources.safeGetIdentifier(name: String, defType: String, defPackage: String): Int {
     return try { getIdentifier(name, defType, defPackage) } catch (_: Exception) { 0 }
 }
+
 private fun android.content.Context.safeDrawableId(name: String): Int {
     return resources.safeGetIdentifier(name, "drawable", packageName)
 }

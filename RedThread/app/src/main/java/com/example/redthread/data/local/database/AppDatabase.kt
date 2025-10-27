@@ -8,6 +8,10 @@ import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.redthread.data.local.producto.ProductoDao
 import com.example.redthread.data.local.producto.ProductoEntity
+import com.example.redthread.data.local.pedido.PedidoDao
+import com.example.redthread.data.local.pedido.PedidoEntity
+import com.example.redthread.data.local.ruta.RutaDao
+import com.example.redthread.data.local.ruta.RutaEntity
 import com.example.redthread.data.local.user.UserDao
 import com.example.redthread.data.local.user.UserEntity
 import com.example.redthread.domain.enums.UserRole
@@ -16,8 +20,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [UserEntity::class, ProductoEntity::class],
-    version = 3, // sube la versión porque agregaste una nueva entidad
+    entities = [
+        UserEntity::class,
+        ProductoEntity::class,
+        PedidoEntity::class,
+        RutaEntity::class
+    ],
+    version = 4, // sube la versión cada vez que agregas nuevas tablas
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -25,6 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
     abstract fun productoDao(): ProductoDao
+    abstract fun pedidoDao(): PedidoDao
+    abstract fun rutaDao(): RutaDao
 
     companion object {
         @Volatile

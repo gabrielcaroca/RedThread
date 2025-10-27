@@ -5,11 +5,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductoDao {
+    @Query("SELECT * FROM productos ORDER BY nombre ASC")
+    fun observarTodos(): Flow<List<ProductoEntity>>
+
+    @Query("SELECT * FROM productos WHERE destacado = 1")
+    fun obtenerDestacados(): Flow<List<ProductoEntity>>
+
     @Query("SELECT * FROM productos WHERE categoria = :categoria")
     fun observarPorCategoria(categoria: String): Flow<List<ProductoEntity>>
-
-    @Query("SELECT * FROM productos")
-    fun observarTodos(): Flow<List<ProductoEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(producto: ProductoEntity)

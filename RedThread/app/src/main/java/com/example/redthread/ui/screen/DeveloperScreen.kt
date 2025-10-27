@@ -42,8 +42,8 @@ fun DeveloperScreen(
 
         when (tab) {
             DevTab.PRODUCTOS -> ProductosTab(vmProducto)
-            DevTab.PEDIDOS -> DespachosTab(vm)
-            DevTab.RUTAS -> UsuariosTab(vm)
+            DevTab.PEDIDOS -> DespachosTab()   // sin argumentos, usa viewModel() interno
+            DevTab.RUTAS -> UsuariosTab()      // sin argumentos, usa viewModel() interno
         }
     }
 }
@@ -430,10 +430,156 @@ private fun ProductoFormulario(
         // Featured
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = isFeatured, onCheckedChange = onFeaturedChange)
-            Text("Marcar como Featured")
+            Text("Marcar como Destacado")
         }
     }
 }
 
-@Composable fun DespachosTab(vm: DeveloperViewModel) {}
-@Composable fun UsuariosTab(vm: DeveloperViewModel) {}
+// ------------------------- PEDIDOS -------------------------
+@Composable
+fun DespachosTab(vmPedido: com.example.redthread.ui.viewmodel.PedidoViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+                 vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+
+    val pedidos by vmPedido.pedidos.collectAsState()
+    val seleccionados = remember { mutableStateListOf<Long>() }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text("Pedidos disponibles", fontWeight = FontWeight.Bold)
+
+        Spacer(Modifier.height(8.dp))
+
+        // Botón para crear una ruta
+        Button(
+            onClick = {
+                if (seleccionados.isNotEmpty()) {
+                    val nombreRuta = "Ruta${System.currentTimeMillis() % 1000}"
+                    vmRuta.crearRuta(nombreRuta, seleccionados)
+                    seleccionados.clear()
+                }
+            },
+            enabled = seleccionados.isNotEmpty(),
+            colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary)
+        ) {
+            Text("Crear ruta con seleccionados")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        if (pedidos.isEmpty()) {
+            Text("No hay pedidos registrados.")
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(pedidos) { p ->
+                    PedidoItem(
+                        pedido = p,
+                        seleccionado = seleccionados.contains(p.id),
+                        onSelect = { checked ->
+                            if (checked) seleccionados.add(p.id)
+                            else seleccionados.remove(p.id)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PedidoItem(pedido: com.example.redthread.data.local.pedido.PedidoEntity, seleccionado: Boolean, onSelect: (Boolean) -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            Modifier
+                .padding(8.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = seleccionado, onCheckedChange = onSelect)
+            Column(Modifier.weight(1f)) {
+                Text(pedido.usuario, fontWeight = FontWeight.Bold)
+                Text(pedido.direccion, style = MaterialTheme.typography.bodySmall)
+                Text("Total: $${pedido.total}", style = MaterialTheme.typography.bodySmall)
+            }
+            val entregado = if (pedido.entregado) "Entregado" else "Pendiente"
+            Text(entregado, color = if (pedido.entregado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+// ------------------------- RUTAS -------------------------
+@Composable
+fun UsuariosTab(vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val rutas by vmRuta.rutas.collectAsState()
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text("Rutas activas", fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+
+        if (rutas.isEmpty()) {
+            Text("No hay rutas creadas.")
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(rutas) { ruta ->
+                    RutaItem(ruta, vmRuta)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RutaItem(ruta: com.example.redthread.data.local.ruta.RutaEntity, vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel) {
+    var activa by remember { mutableStateOf(ruta.activa) }
+    var completada by remember { mutableStateOf(ruta.completada) }
+
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(8.dp)) {
+            Text(ruta.nombre, fontWeight = FontWeight.Bold)
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Activa")
+                    Switch(checked = activa, onCheckedChange = {
+                        activa = it
+                        vmRuta.actualizarRuta(ruta.copy(activa = it))
+                    })
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Completada")
+                    Checkbox(checked = completada, onCheckedChange = {
+                        completada = it
+                        vmRuta.actualizarRuta(ruta.copy(completada = it))
+                    })
+                }
+
+                TextButton(onClick = { vmRuta.eliminarRuta(ruta) }) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            Text(
+                text = "Pedidos: ${ruta.pedidosIds}",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+        }
+    }
+}
