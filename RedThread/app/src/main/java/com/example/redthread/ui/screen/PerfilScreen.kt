@@ -133,8 +133,14 @@ fun PerfilScreen(
 
                     // Botón cerrar sesión (siempre accesible por el scroll de la página)
                     // Botón historial de compras
+                    // Botón historial de compras
                     Button(
-                        onClick = { navController.navigate(Route.HistorialCompras.path) },
+                        onClick = {
+                            navController.navigate(Route.HistorialCompras.path) {
+                                launchSingleTop = true
+                                popUpTo(Route.Perfil.path) { inclusive = false }
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -143,12 +149,22 @@ fun PerfilScreen(
                         Text("Ver historial de compras", color = TextPrimary)
                     }
 
+
 // Botón cerrar sesión
                     Button(
-                        onClick = onLogout,
+                        onClick = {
+                            try {
+                                onLogout()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("Cerrar sesión", color = TextPrimary) }
+                    ) {
+                        Text("Cerrar sesión", color = TextPrimary)
+                    }
+
 
                 }
             }

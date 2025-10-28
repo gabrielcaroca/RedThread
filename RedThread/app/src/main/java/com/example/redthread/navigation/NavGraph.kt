@@ -212,6 +212,35 @@ fun AppNavGraph(
             composable(Route.Despachador.path) {
                 DespachadorScreen()
             }
+            // Historial de compras
+            composable(Route.HistorialCompras.path) {
+                HistorialComprasScreen(navController)
+            }
+
+// Detalle de compra
+            composable(
+                route = "${Route.DetalleCompra.path}/{id}/{fecha}/{total}/{productos}"
+            ) { backStack ->
+                val id = backStack.arguments?.getString("id")?.toIntOrNull() ?: 0
+                val fecha = java.net.URLDecoder.decode(
+                    backStack.arguments?.getString("fecha") ?: "",
+                    java.nio.charset.StandardCharsets.UTF_8.toString()
+                )
+                val total = backStack.arguments?.getString("total")?.toLongOrNull() ?: 0
+                val productosStr = java.net.URLDecoder.decode(
+                    backStack.arguments?.getString("productos") ?: "",
+                    java.nio.charset.StandardCharsets.UTF_8.toString()
+                )
+                val productos = productosStr.split("|")
+
+                DetalleCompraScreen(
+                    idCompra = id,
+                    fecha = fecha,
+                    total = total,
+                    productos = productos,
+                    navController = navController
+                )
+            }
 
 
             // Detalle de producto (query params)
