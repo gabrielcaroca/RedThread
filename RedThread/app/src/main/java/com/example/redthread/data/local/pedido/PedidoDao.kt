@@ -11,6 +11,9 @@ interface PedidoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(pedido: PedidoEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReturningId(pedido: PedidoEntity): Long
+
     @Update
     suspend fun update(pedido: PedidoEntity)
 

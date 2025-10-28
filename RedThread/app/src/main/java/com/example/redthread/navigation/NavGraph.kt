@@ -147,7 +147,12 @@ fun AppNavGraph(
             }
 
             composable (Route.Checkout.path) {
-                CheckoutScreen()
+                CheckoutScreen(
+                    cartVm = cartVm,
+                    onGoPerfil = {
+                        navController.navigate(Route.Perfil.path) { launchSingleTop = true }
+                    }
+                )
             }
 
             // Admin/Dev

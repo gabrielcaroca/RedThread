@@ -15,26 +15,7 @@ class PedidoViewModel(app: Application) : AndroidViewModel(app) {
     val pedidos = dao.observarTodos()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun registrarPedido(pedido: PedidoEntity) {
-        viewModelScope.launch { dao.upsert(pedido) }
-    }
-
-    fun actualizar(pedido: PedidoEntity) {
-        viewModelScope.launch { dao.update(pedido) }
-    }
-
-    fun eliminar(pedido: PedidoEntity) {
-        viewModelScope.launch { dao.delete(pedido) }
-    }
-
-    /**
-     * Punto de entrada desde Checkout:
-     * - usuario: nombre visible del comprador (o email)
-     * - direccion: texto resultante de la dirección elegida
-     * - total: total final CLP
-     * - productosSnapshot: texto/JSON con los ítems (p.ej. "[{'sku':'X','cant':2,'precio':...},...]")
-     */
-    fun crearPedidoDesdeCheckout(
+    fun createPedido(
         usuario: String,
         direccion: String,
         total: Long,
@@ -47,7 +28,23 @@ class PedidoViewModel(app: Application) : AndroidViewModel(app) {
                 total = total,
                 productos = productosSnapshot
             )
-            dao.upsert(p)
+            dao.upsert(p) // sigue disponible para otros usos
         }
+    }
+
+    // NUEVO: crear pedido y obtener el ID insertado
+    suspend fun createPedidoReturnId(
+        usuario: String,
+        direccion: String,
+        total: Long,
+        productosSnapshot: String
+    ): Long {
+        val p = PedidoEntity(
+            usuario = usuario,
+            direccion = direccion,
+            total = total,
+            productos = productosSnapshot
+        )
+        return dao.insertReturningId(p)
     }
 }

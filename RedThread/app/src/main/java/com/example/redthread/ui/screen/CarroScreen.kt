@@ -40,7 +40,10 @@ fun CarroScreen(
         return "$" + s.replace(',', '.')                // "$50.000"
     }
 
-    val subtotal = items.sumOf { parsePriceToInt(it.precio) * it.cantidad }
+    val total = items.sumOf { parsePriceToInt(it.precio) * it.cantidad }
+    val ivaInt = (total * 0.19).toInt()
+    val subtotal = total - ivaInt
+
 
     Column(
         modifier = Modifier
