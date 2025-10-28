@@ -11,5 +11,6 @@ data class PedidoEntity(
     val total: Long,
     val productos: String, // formato JSON o texto simple
     val fecha: Long = System.currentTimeMillis(),
-    val entregado: Boolean = false // lo marca el repartidor
+    val entregado: Boolean = false, // lo marca el repartidor
+    val estado: String = "pendiente"
 )

@@ -138,8 +138,10 @@ fun AppNavGraph(
                         role = role,
                         onLogout = { authViewModel.logout() },
                         onGoAdmin = { navController.navigate(Route.VistaModerador.path) },
-                        onGoDespachador = { navController.navigate(Route.Despachador.path) }
+                        onGoDespachador = { navController.navigate(Route.Despachador.path) },
+                        navController = navController // 👈 agrega esto
                     )
+
                 }
             }
 
@@ -210,6 +212,7 @@ fun AppNavGraph(
             composable(Route.Despachador.path) {
                 DespachadorScreen()
             }
+
 
             // Detalle de producto (query params)
             composable("${Route.ProductoDetalle.path}?id={id}&nombre={nombre}&precio={precio}&categoria={categoria}") { backStack ->

@@ -13,6 +13,9 @@ interface PedidoDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReturningId(pedido: PedidoEntity): Long
+    @Query("SELECT * FROM pedido WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): PedidoEntity?
+
 
     @Update
     suspend fun update(pedido: PedidoEntity)
