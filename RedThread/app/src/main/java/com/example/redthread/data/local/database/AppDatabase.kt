@@ -6,12 +6,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.redthread.data.local.address.AddressEntity
 import com.example.redthread.data.local.address.AddressDao
-import com.example.redthread.data.local.producto.ProductoDao
-import com.example.redthread.data.local.producto.ProductoEntity
+import com.example.redthread.data.local.address.AddressEntity
 import com.example.redthread.data.local.pedido.PedidoDao
 import com.example.redthread.data.local.pedido.PedidoEntity
+import com.example.redthread.data.local.producto.ProductoDao
+import com.example.redthread.data.local.producto.ProductoEntity
 import com.example.redthread.data.local.ruta.RutaDao
 import com.example.redthread.data.local.ruta.RutaEntity
 import com.example.redthread.data.local.user.UserDao
@@ -21,6 +21,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * Base de datos principal de la aplicación RedThread.
+ * Contiene las tablas de usuarios, productos, pedidos, rutas y direcciones.
+ * Gestiona automáticamente los datos iniciales (usuarios de ejemplo).
+ */
 @Database(
     entities = [
         UserEntity::class,
@@ -29,12 +34,13 @@ import kotlinx.coroutines.launch
         RutaEntity::class,
         AddressEntity::class
     ],
-    version = 5,
-    exportSchema = true
+    version = 7, // 🔹 subimos versión por cambios en PedidoEntity o estructura
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
+    // --- DAOs disponibles ---
     abstract fun userDao(): UserDao
     abstract fun productoDao(): ProductoDao
     abstract fun pedidoDao(): PedidoDao
@@ -46,6 +52,10 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
         private const val DB_NAME = "redthread.db"
 
+        /**
+         * Obtiene la instancia única de la base de datos.
+         * Si no existe, la crea y realiza una carga inicial con usuarios demo.
+         */
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -53,13 +63,16 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DB_NAME
                 )
+                    // 🔹 Permite recrear las tablas si cambia la estructura (solo durante desarrollo)
+                    .fallbackToDestructiveMigration()
+                    // 🔹 Crea usuarios de prueba al generar la base por primera vez
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             CoroutineScope(Dispatchers.IO).launch {
-                                val dao = getInstance(context).userDao()
+                                val userDao = getInstance(context).userDao()
 
-                                val seed = listOf(
+                                val seedUsers = listOf(
                                     UserEntity(
                                         name = "Admin",
                                         email = "admin@redthread.cl",
@@ -83,11 +96,11 @@ abstract class AppDatabase : RoomDatabase() {
                                     )
                                 )
 
-                                if (dao.count() == 0) seed.forEach { dao.insert(it) }
+                                // Solo inserta si no hay usuarios
+                                if (userDao.count() == 0) seedUsers.forEach { userDao.insert(it) }
                             }
                         }
                     })
-                    .fallbackToDestructiveMigration()
                     .build()
 
                 INSTANCE = instance

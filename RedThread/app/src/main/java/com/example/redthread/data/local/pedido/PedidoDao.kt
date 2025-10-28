@@ -8,6 +8,9 @@ interface PedidoDao {
     @Query("SELECT * FROM pedido ORDER BY fecha DESC")
     fun observarTodos(): Flow<List<PedidoEntity>>
 
+    @Query("SELECT * FROM pedido WHERE estado = :estado ORDER BY fecha DESC")
+    fun observarPorEstado(estado: String): Flow<List<PedidoEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(pedido: PedidoEntity)
 
