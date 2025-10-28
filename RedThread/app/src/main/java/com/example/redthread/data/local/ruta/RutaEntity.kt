@@ -9,5 +9,6 @@ data class RutaEntity(
     val nombre: String, // ej. "Ruta1", "Ruta2"
     val pedidosIds: String, // guardas los IDs concatenados como texto: "1,2,3"
     val activa: Boolean = true,
-    val completada: Boolean = false
+    val completada: Boolean = false,
+    val creadoEn: Long = System.currentTimeMillis()
 )

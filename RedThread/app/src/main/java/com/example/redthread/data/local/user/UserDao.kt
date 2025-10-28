@@ -18,9 +18,21 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity)
 
+    @Update
+    suspend fun updateUser(user: UserEntity)
+
+    @Query("UPDATE users SET email = :email, phone = :phone WHERE id = :id")
+    suspend fun updateContact(id: Int, email: String, phone: String)
+
+    @Query("UPDATE users SET password = :password WHERE id = :id")
+    suspend fun updatePassword(id: Int, password: String)
+
     // Devuelve un usuario por su email, o null si no existe.
     @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
     suspend fun getByEmail(email: String): UserEntity?
+
+    @Query("SELECT * FROM users WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Int): UserEntity?
 
     // Devuelve la cantidad total de usuarios registrados.
     @Query("SELECT COUNT(*) FROM users")

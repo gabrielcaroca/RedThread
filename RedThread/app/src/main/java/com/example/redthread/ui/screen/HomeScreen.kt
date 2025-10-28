@@ -1,5 +1,6 @@
 package com.example.redthread.ui.screen
 
+import android.annotation.SuppressLint
 import android.content.res.Resources
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -12,6 +13,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,11 +67,39 @@ fun HomeScreen(
     val productos by vmProducto.productos.collectAsState()
     val destacados by vmProducto.destacados.collectAsState()
 
-    var isLoading by remember { mutableStateOf(true) }
+    // ⬇️ Estado del filtro por subcategoría (null = Todas)
+    var subcatSel by remember { mutableStateOf<String?>(null) }
 
+    var isLoading by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         delay(1000)
         isLoading = false
+    }
+
+    // Base de datos visible según tab actual (para calcular subcategorías disponibles)
+    val baseActual = remember(productos, destacados, filtro) {
+        when (filtro) {
+            Filtro.TODOS -> destacados
+            Filtro.HOMBRES -> productos.filter { it.categoria.equals("Hombre", ignoreCase = true) }
+            Filtro.MUJERES -> productos.filter { it.categoria.equals("Mujer", ignoreCase = true) }
+        }
+    }
+
+    // Subcategorías disponibles deducidas de la base visible
+    val subcategoriasDisponibles by remember(baseActual) {
+        mutableStateOf(
+            baseActual.map { it.subcategoria }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+        )
+    }
+
+    // Si cambias de tab y la subcategoría ya no existe en el nuevo set, resetea a "Todas"
+    LaunchedEffect(subcategoriasDisponibles) {
+        if (subcatSel != null && subcatSel !in subcategoriasDisponibles) {
+            subcatSel = null
+        }
     }
 
     Column(
@@ -81,44 +114,118 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
 
+        // ⬇️ Dropdown de subcategorías (se muestra solo si hay opciones)
+        if (subcategoriasDisponibles.isNotEmpty()) {
+            SubcategoriaFilterDropdown(
+                opciones = subcategoriasDisponibles,
+                seleccion = subcatSel,
+                onChange = { nueva ->
+                    subcatSel = nueva // null = Todas
+                }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         Crossfade(targetState = isLoading, label = "homeCrossfadeLoading") { loading ->
             if (loading) {
                 SkeletonGrid()
             } else {
-                val lista = when (filtro) {
-                    Filtro.TODOS -> destacados.map {
-                        ProductoUi(
-                            id = it.id,
-                            nombre = it.nombre,
-                            precio = "$${"%,d".format(it.precio)}",
-                            categoria = it.subcategoria,
-                            target = Filtro.TODOS
-                        )
-                    }
-                    Filtro.HOMBRES -> productos.filter { it.categoria.lowercase() == "hombre" }.map {
-                        ProductoUi(
-                            id = it.id,
-                            nombre = it.nombre,
-                            precio = "$${"%,d".format(it.precio)}",
-                            categoria = it.subcategoria,
-                            target = Filtro.HOMBRES
-                        )
-                    }
-                    Filtro.MUJERES -> productos.filter { it.categoria.lowercase() == "mujer" }.map {
-                        ProductoUi(
-                            id = it.id,
-                            nombre = it.nombre,
-                            precio = "$${"%,d".format(it.precio)}",
-                            categoria = it.subcategoria,
-                            target = Filtro.MUJERES
-                        )
-                    }
+                // 1) Tomamos la base de entidades según el tab seleccionado
+                val entidadesBase = baseActual
+
+                // 2) Aplicamos el filtro de subcategoría si corresponde
+                val entidadesFiltradas = if (subcatSel == null) {
+                    entidadesBase
+                } else {
+                    entidadesBase.filter { it.subcategoria.equals(subcatSel, ignoreCase = true) }
+                }
+
+                // 3) Mapeamos a ProductoUi
+                val lista = entidadesFiltradas.map {
+                    ProductoUi(
+                        id = it.id,
+                        nombre = it.nombre,
+                        precio = "$${"%,d".format(it.precio)}",
+                        categoria = it.subcategoria,
+                        target = when (filtro) {
+                            Filtro.TODOS -> Filtro.TODOS
+                            Filtro.HOMBRES -> Filtro.HOMBRES
+                            Filtro.MUJERES -> Filtro.MUJERES
+                        }
+                    )
                 }
 
                 AnimatedProductGrid(
                     filtro = filtro,
                     productos = lista,
                     onProductoClick = onProductoClick
+                )
+            }
+        }
+    }
+}
+
+// ------------------------
+// Dropdown de Subcategoría
+// ------------------------
+@Composable
+private fun SubcategoriaFilterDropdown(
+    opciones: List<String>,
+    seleccion: String?,
+    onChange: (String?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    // Caja "pill" clickeable + menú desplegable
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardGray)
+                .clickable { expanded = true }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Subcategoría: ${seleccion ?: "Todas"}",
+                color = TextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.width(8.dp))
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Filled.ExpandMore,
+                contentDescription = "Abrir",
+                tint = TextSecondary
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .background(CardGrayElevated)
+        ) {
+            // Opción "Todas"
+            DropdownMenuItem(
+                text = { Text("Todas", color = TextPrimary) },
+                onClick = {
+                    onChange(null)
+                    expanded = false
+                }
+            )
+            // Opciones de subcategoría
+            opciones.forEach { sub ->
+                DropdownMenuItem(
+                    text = { Text(sub, color = TextPrimary) },
+                    onClick = {
+                        onChange(sub)
+                        expanded = false
+                    }
                 )
             }
         }
@@ -154,22 +261,26 @@ private fun AnimatedProductGrid(
             (slideIn + fadeIn()) togetherWith (slideOut + fadeOut())
         },
         label = "gridTransition"
-    ) { _ ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(productos, key = { it.id }) { p ->
-                ProductCard(
-                    producto = p,
-                    onClick = { onProductoClick(p) },
-                    modifier = Modifier.animateItemPlacement(
-                        animationSpec = tween(300, easing = FastOutSlowInEasing)
+    ) { current ->
+        // Usa el parámetro para evitar warning de "Target state parameter is not used"
+        androidx.compose.runtime.key(current) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(productos, key = { it.id }) { p ->
+                    ProductCard(
+                        producto = p,
+                        onClick = { onProductoClick(p) },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = tween(300, easing = FastOutSlowInEasing),
+                            fadeOutSpec = tween(300, easing = FastOutSlowInEasing)
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -190,10 +301,11 @@ private fun SkeletonGrid(skeletonCount: Int = 8) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(placeholders) { index ->
+        items(placeholders) { _ ->
             SkeletonCard(
-                modifier = Modifier.animateItemPlacement(
-                    tween(300 + (index % 6) * 20, easing = FastOutSlowInEasing)
+                modifier = Modifier.animateItem(
+                    fadeInSpec = tween(280, easing = FastOutSlowInEasing),
+                    fadeOutSpec = tween(200, easing = FastOutSlowInEasing)
                 )
             )
         }
@@ -390,6 +502,7 @@ private fun Resources.safeGetIdentifier(name: String, defType: String, defPackag
     return try { getIdentifier(name, defType, defPackage) } catch (_: Exception) { 0 }
 }
 
+@SuppressLint("DiscouragedApi")
 private fun android.content.Context.safeDrawableId(name: String): Int {
     return resources.safeGetIdentifier(name, "drawable", packageName)
 }

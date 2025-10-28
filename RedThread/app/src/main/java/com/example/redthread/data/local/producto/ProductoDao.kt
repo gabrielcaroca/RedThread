@@ -14,6 +14,9 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE categoria = :categoria")
     fun observarPorCategoria(categoria: String): Flow<List<ProductoEntity>>
 
+    @Query("SELECT DISTINCT subcategoria FROM productos ORDER BY subcategoria ASC")
+    fun obvervarSubcategorias(): Flow<List<String>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(producto: ProductoEntity)
 

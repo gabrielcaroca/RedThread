@@ -13,16 +13,23 @@ class RutaViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = AppDatabase.getInstance(app).rutaDao()
 
     val rutas = dao.observarTodas()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun crearRuta(nombre: String, pedidosSeleccionados: List<Long>) = viewModelScope.launch {
-        val ruta = RutaEntity(
-            nombre = nombre,
-            pedidosIds = pedidosSeleccionados.joinToString(",")
-        )
-        dao.upsert(ruta)
+    fun crearRuta(nombre: String, pedidosSeleccionados: List<Long>) {
+        viewModelScope.launch {
+            val r = RutaEntity(
+                nombre = nombre,
+                pedidosIds = pedidosSeleccionados.joinToString(",")
+            )
+            dao.upsert(r)
+        }
     }
 
-    fun actualizarRuta(r: RutaEntity) = viewModelScope.launch { dao.update(r) }
-    fun eliminarRuta(r: RutaEntity) = viewModelScope.launch { dao.delete(r) }
+    fun actualizarRuta(ruta: RutaEntity) {
+        viewModelScope.launch { dao.update(ruta) }
+    }
+
+    fun eliminarRuta(ruta: RutaEntity) {
+        viewModelScope.launch { dao.delete(ruta) }
+    }
 }
