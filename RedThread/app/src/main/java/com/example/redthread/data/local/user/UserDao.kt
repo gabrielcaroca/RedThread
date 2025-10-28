@@ -27,6 +27,15 @@ interface UserDao {
     @Query("UPDATE users SET password = :password WHERE id = :id")
     suspend fun updatePassword(id: Int, password: String)
 
+    @Query("SELECT * FROM users WHERE phone = :phone LIMIT 1")
+    suspend fun getByPhone(phone: String): UserEntity?
+
+    @Query("UPDATE users SET password = :password WHERE email = :email")
+    suspend fun updatePasswordByEmail(email: String, password: String)
+
+    @Query("UPDATE users SET password = :password WHERE phone = :phone")
+    suspend fun updatePasswordByPhone(phone: String, password: String)
+
     // Devuelve un usuario por su email, o null si no existe.
     @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
     suspend fun getByEmail(email: String): UserEntity?

@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import com.example.redthread.ui.theme.Black
@@ -25,27 +24,23 @@ import com.example.redthread.ui.viewmodel.CartViewModel
 import com.example.redthread.ui.viewmodel.PedidoViewModel
 import com.example.redthread.ui.viewmodel.ProfileViewModel
 
-/* === MOVER FUERA DEL COMPOSABLE === */
-enum class MetodoPago { DEBITO, CREDITO }
-
 @Composable
 fun CheckoutScreen(
     cartVm: CartViewModel,
-    onGoPerfil: () -> Unit
+    onGoPerfil: () -> Unit,
+    onPaidSuccess: (pedidoId: Long, totalSnapshot: Int, metodo: MetodoPago) -> Unit
 ) {
     val profileVm: ProfileViewModel = viewModel()
     val pedidoVm: PedidoViewModel = viewModel()
-
     val scope = rememberCoroutineScope()
 
     val profileState by profileVm.state.collectAsState()
     val items = cartVm.items.collectAsState().value
 
-    // Totales
-    val subtotalInt = items.sumOf { parsePriceToInt(it.precio) * it.cantidad }
-    val ivaInt = (subtotalInt * 0.19).toInt()
-    val subtotatProdSinIva = subtotalInt - ivaInt
-    val totalInt = subtotatProdSinIva + ivaInt
+    // Totales: subtotal (sin IVA), IVA 19%, total
+    val subtotal = items.sumOf { parsePriceToInt(it.precio) * it.cantidad }
+    val iva = (subtotal * 0.19).toInt()
+    val total = subtotal + iva
 
     // Dirección
     val direcciones = profileState.addresses
@@ -58,7 +53,6 @@ fun CheckoutScreen(
 
     // UI state
     var isPaying by remember { mutableStateOf(false) }
-    var successId by remember { mutableStateOf<Long?>(null) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -79,23 +73,23 @@ fun CheckoutScreen(
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Subtotal", color = TextSecondary)
-                    Text(formatCLP(subtotatProdSinIva), color = TextPrimary)
+                    Text(formatCLP(subtotal), color = TextPrimary)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("IVA (19%)", color = TextSecondary)
-                    Text(formatCLP(ivaInt), color = TextPrimary)
+                    Text(formatCLP(iva), color = TextPrimary)
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp), color = TextSecondary.copy(alpha = 0.2f))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Total", color = TextPrimary, fontWeight = FontWeight.Bold)
-                    Text(formatCLP(totalInt), color = TextPrimary, fontWeight = FontWeight.Bold)
+                    Text(formatCLP(total), color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // === Dirección ===
+        // === Dirección de entrega ===
         Text("Dirección de entrega", color = TextPrimary, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
 
@@ -164,10 +158,7 @@ fun CheckoutScreen(
                 ) {
                     RadioButton(selected = selected, onClick = { metodo = m })
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (m == MetodoPago.DEBITO) "Débito" else "Crédito",
-                        color = TextPrimary
-                    )
+                    Text(if (m == MetodoPago.DEBITO) "Débito" else "Crédito", color = TextPrimary)
                 }
                 HorizontalDivider(color = TextSecondary.copy(alpha = 0.12f))
             }
@@ -179,25 +170,18 @@ fun CheckoutScreen(
         Button(
             onClick = {
                 errorMsg = null
-                successId = null
-
-                if (items.isEmpty()) {
-                    errorMsg = "Tu carrito está vacío."
-                    return@Button
-                }
+                if (items.isEmpty()) { errorMsg = "Tu carrito está vacío."; return@Button }
                 if (direcciones.isEmpty() || direccionSeleccionadaId == null) {
-                    errorMsg = "Selecciona o registra una dirección."
-                    return@Button
+                    errorMsg = "Selecciona o registra una dirección."; return@Button
                 }
-                val user = profileState.user
-                if (user == null) {
-                    errorMsg = "No hay sesión activa."
-                    return@Button
-                }
+                val user = profileState.user ?: run { errorMsg = "No hay sesión activa."; return@Button }
+
+                // Snapshot del total para no perderlo al limpiar el carrito
+                val totalSnapshot = total
 
                 isPaying = true
                 scope.launch {
-                    delay(700) // simulación 0.7s
+                    // Crear pedido ya mismo
                     val productosSnapshot = buildString {
                         items.forEach {
                             append("- ${it.nombre} (${it.talla}/${it.color}) x${it.cantidad} = ${it.precio}\n")
@@ -207,12 +191,13 @@ fun CheckoutScreen(
                     val pedidoId = pedidoVm.createPedidoReturnId(
                         usuario = user.name,
                         direccion = dir.linea1,
-                        total = totalInt.toLong(),
+                        total = totalSnapshot.toLong(),
                         productosSnapshot = productosSnapshot
                     )
+                    // Limpiar carrito y navegar a pantalla de proceso
                     cartVm.clear()
-                    successId = pedidoId
                     isPaying = false
+                    onPaidSuccess(pedidoId, totalSnapshot, metodo)
                 }
             },
             enabled = !isPaying && items.isNotEmpty() && direcciones.isNotEmpty(),
@@ -222,36 +207,16 @@ fun CheckoutScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text("Procesando pago…")
+                    Text("Preparando pago…")
                 }
             } else {
-                Text("Pagar ${formatCLP(totalInt)}")
+                Text("Pagar ${formatCLP(total)}")
             }
         }
 
         if (errorMsg != null) {
             Spacer(Modifier.height(10.dp))
             Text(errorMsg!!, color = MaterialTheme.colorScheme.error)
-        }
-
-        if (successId != null) {
-            Spacer(Modifier.height(16.dp))
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Transacción confirmada ✅", color = TextPrimary, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Pedido #$successId creado", color = TextPrimary)
-                    Text("Total pagado: ${formatCLP(totalInt)}", color = TextPrimary)
-                    Spacer(Modifier.height(6.dp))
-                    Text("Método: ${if (metodo == MetodoPago.DEBITO) "Débito" else "Crédito"}", color = TextSecondary)
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "Lo verás en Developer > PEDIDOS. El repartidor lo tomará cuando corresponda.",
-                        color = TextSecondary,
-                        fontSize = 12.sp
-                    )
-                }
-            }
         }
 
         Spacer(Modifier.height(40.dp))

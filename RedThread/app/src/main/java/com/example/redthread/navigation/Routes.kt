@@ -1,4 +1,5 @@
 package com.example.redthread.navigation
+
 //Cada uno de los objetos va a representar una pantalla
 //Si es necesario agregar mas.
 sealed class Route(val path: String) {
@@ -11,10 +12,18 @@ sealed class Route(val path: String) {
     data object Checkout : Route("checkout") // 7
     data object Despachador : Route("despachador") // 8
     data object VistaModerador : Route("vista_moderador")
-
     data object ProductoDetalle : Route("product")
 
+    data object Forgot : Route("recuperar")
+    data object PaymentProcessing : Route("payment-processing?id={id}&total={total}&m={m}")
 }
+
+/* Helpers de rutas */
+fun buildPaymentProcessingPath(
+    id: Long,
+    total: Int,
+    metodo: String // "DEBITO" o "CREDITO"
+): String = "payment-processing?id=$id&total=$total&m=$metodo"
 
 /*
 * Rutas principales de la aplicación

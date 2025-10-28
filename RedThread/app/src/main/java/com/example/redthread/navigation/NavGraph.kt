@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.example.redthread.ui.components.AppTopBar
 import com.example.redthread.ui.screen.*
 import com.example.redthread.ui.theme.Black
@@ -21,7 +23,7 @@ import com.example.redthread.ui.viewmodel.CartViewModel
 import com.example.redthread.ui.viewmodel.DeveloperViewModel
 import com.example.redthread.ui.viewmodel.ProductoViewModel
 import java.net.URLEncoder
-import java.net.URLDecoder
+import androidx.compose.runtime.*
 import java.nio.charset.StandardCharsets
 
 @Composable
@@ -98,6 +100,11 @@ fun AppNavGraph(
                     },
                     onGoRegister = {
                         navController.navigate(Route.Register.path) { launchSingleTop = true }
+                    },
+                    onForgot = {                                      // <-- AGREGADO
+                        navController.navigate(Route.Forgot.path) {   // navega al flujo de recuperación
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -141,16 +148,49 @@ fun AppNavGraph(
                 CarroScreen(
                     vm = cartVm,
                     onGoCheckout = {
-                        navController.navigate(Route.Checkout.path) {launchSingleTop = true}
+                        navController.navigate(Route.Checkout.path) { launchSingleTop = true }
                     }
                 )
             }
 
-            composable (Route.Checkout.path) {
+            // Checkout
+            composable(Route.Checkout.path) {
                 CheckoutScreen(
                     cartVm = cartVm,
                     onGoPerfil = {
                         navController.navigate(Route.Perfil.path) { launchSingleTop = true }
+                    },
+                    onPaidSuccess = { pedidoId, totalSnapshot, metodo ->
+                        navController.navigate(
+                            buildPaymentProcessingPath(
+                                id = pedidoId,
+                                total = totalSnapshot,
+                                metodo = metodo.name // "DEBITO"/"CREDITO"
+                            )
+                        )
+                    }
+                )
+            }
+
+            // NUEVO: pantalla de proceso de pago (spinner → confirmación)
+            composable(
+                route = Route.PaymentProcessing.path,
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("total") { type = NavType.IntType },
+                    navArgument("m") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getLong("id") ?: 0L
+                val total = backStackEntry.arguments?.getInt("total") ?: 0
+                val m = backStackEntry.arguments?.getString("m") ?: "DEBITO"
+                PaymentProcessingScreen(
+                    pedidoId = id,
+                    total = total,
+                    metodo = if (m == "CREDITO") MetodoPago.CREDITO else MetodoPago.DEBITO,
+                    onFinish = {
+                        // Decide dónde volver. Ej: Home:
+                        navController.popBackStack(Route.Home.path, inclusive = false)
                     }
                 )
             }
@@ -171,7 +211,7 @@ fun AppNavGraph(
                 DespachadorScreen()
             }
 
-            // Detalle de producto (query params) — ✅ decodificación para evitar "Hoodie+arena"
+            // Detalle de producto (query params)
             composable("${Route.ProductoDetalle.path}?id={id}&nombre={nombre}&precio={precio}&categoria={categoria}") { backStack ->
                 val id = backStack.arguments?.getString("id")?.toIntOrNull() ?: -1
                 fun dec(s: String?) = java.net.URLDecoder.decode(
@@ -191,10 +231,22 @@ fun AppNavGraph(
                     categoria = categoria,
                     cartVm = cartVm,
                     onAddedToCart = {
-                        // ✅ Volver a Home (no al carrito)
                         navController.navigate(Route.Home.path) {
                             launchSingleTop = true
                             popUpTo(Route.Home.path) { inclusive = false }
+                        }
+                    }
+                )
+            }
+
+            // Olvidé contraseña
+            composable(Route.Forgot.path) {
+                ForgotPasswordScreenVm(
+                    vm = authViewModel,   // <<-- PASAMOS EL MISMO VM
+                    onDoneGoLogin = {
+                        navController.navigate(Route.Login.path) {
+                            launchSingleTop = true
+                            popUpTo(Route.Login.path) { inclusive = true }
                         }
                     }
                 )

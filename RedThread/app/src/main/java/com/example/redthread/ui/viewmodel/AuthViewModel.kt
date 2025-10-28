@@ -212,6 +212,31 @@ class AuthViewModel(
             }
         }
     }
+    // === OLVIDÉ MI CONTRASEÑA ===
+    // Actualiza la contraseña buscando por email o por teléfono.
+    // Devuelve true si encontró un usuario y pudo actualizar; false si no existe.
+    suspend fun resetPasswordByEmailOrPhone(identifier: String, newPassword: String): Boolean {
+        val id = identifier.trim()
+        return try {
+            if (id.contains("@")) {
+                // por email
+                val user = repository.getUserByEmail(id) // agrega estos helpers en tu UserRepository si aún no existen
+                if (user != null) {
+                    repository.updatePasswordByEmail(id, newPassword)
+                    true
+                } else false
+            } else {
+                // por teléfono
+                val user = repository.getUserByPhone(id)
+                if (user != null) {
+                    repository.updatePasswordByPhone(id, newPassword)
+                    true
+                } else false
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     fun clearRegisterResult() {
         _register.update { it.copy(success = false, errorMsg = null) }

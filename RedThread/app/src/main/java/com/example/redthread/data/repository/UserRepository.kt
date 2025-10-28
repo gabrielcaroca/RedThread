@@ -48,8 +48,29 @@ class UserRepository(
             role = UserRole.USUARIO // 👈 se asigna el rol por defecto
         )
 
+
         // Insertar el nuevo usuario y devolver el ID generado
         val id = userDao.insert(newUser)
         return Result.success(id)
     }
+
+    // =====================
+    // Recuperación de contraseña (helpers)
+    // =====================
+    suspend fun getUserByEmail(email: String) =
+        userDao.getByEmail(email)
+
+    suspend fun getUserByPhone(phone: String) =
+        userDao.getByPhone(phone)
+
+    suspend fun updatePasswordByEmail(email: String, newPassword: String) {
+        userDao.updatePasswordByEmail(email, newPassword)
+    }
+
+    suspend fun updatePasswordByPhone(phone: String, newPassword: String) {
+        userDao.updatePasswordByPhone(phone, newPassword)
+    }
+
 }
+
+
