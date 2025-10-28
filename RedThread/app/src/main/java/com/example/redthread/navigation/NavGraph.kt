@@ -23,7 +23,6 @@ import com.example.redthread.ui.viewmodel.CartViewModel
 import com.example.redthread.ui.viewmodel.DeveloperViewModel
 import com.example.redthread.ui.viewmodel.ProductoViewModel
 import java.net.URLEncoder
-import androidx.compose.runtime.*
 import java.nio.charset.StandardCharsets
 
 @Composable
@@ -36,6 +35,10 @@ fun AppNavGraph(
     // VM del carrito a nivel de NavGraph
     val cartVm: CartViewModel = viewModel()
     val cartCount by cartVm.count.collectAsState()
+
+    LaunchedEffect(header.email) {
+        cartVm.bindToUserEmail(header.email)
+    }
 
     Scaffold(
         topBar = {
