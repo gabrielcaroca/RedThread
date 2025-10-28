@@ -5,91 +5,88 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 
-// ===============================
-// ViewModel del módulo despachador
-// ===============================
 class DespachadorViewModel : ViewModel() {
 
-    // Rutas disponibles
     val rutas = listOf(
-        Ruta("Centro", 2500),
-        Ruta("Norte", 3500),
-        Ruta("Sur", 4000)
+        Ruta("Centro", "Zona centro de la ciudad", 2500),
+        Ruta("Norte", "Sector residencial norte", 3500),
+        Ruta("Sur", "Sector sur industrial", 4000)
     )
 
-    // Estado actual de la ruta seleccionada
     var rutaSeleccionada = mutableStateOf<Ruta?>(null)
+    val etapas = listOf("Recoger", "Entregar", "Retorno")
+    var etapaSeleccionada = mutableStateOf("Recoger")
 
-    // Lista observable de pedidos por ruta
-    var pedidos = mutableStateListOf<Pedido>()
+    var pendientes = mutableStateListOf<Pedido>()
+    var porEntregar = mutableStateListOf<Pedido>()
+    var retornos = mutableStateListOf<Pedido>()
 
-    // Pedido actualmente seleccionado (para vista detallada)
-    var pedidoSeleccionado = mutableStateOf<Pedido?>(null)
+    init {
+        seleccionarRuta(rutas.first())
+    }
 
-    // Cargar los pedidos según la ruta elegida
-    fun cargarPedidos(ruta: Ruta) {
+    fun cambiarEtapa(nueva: String) {
+        etapaSeleccionada.value = nueva
+    }
+
+    fun seleccionarRuta(ruta: Ruta) {
         rutaSeleccionada.value = ruta
-        pedidos.clear()
+        pendientes.clear()
+        porEntregar.clear()
+        retornos.clear()
 
-        val data = when (ruta.nombre) {
-            "Centro" -> listOf(
-                Pedido("Pedido #1", "ph_polera", false, null),
-                Pedido("Pedido #2", "ph_zapatillas", false, null)
+        when (ruta.nombre) {
+            "Centro" -> pendientes.addAll(
+                listOf(
+                    Pedido(1, "Polera básica", "ph_polera"),
+                    Pedido(2, "Zapatillas deportivas", "ph_zapatillas")
+                )
             )
-            "Norte" -> listOf(
-                Pedido("Pedido #3", "ph_pantalon", false, null)
+            "Norte" -> pendientes.addAll(
+                listOf(Pedido(3, "Pantalón azul", "ph_pantalon"))
             )
-            "Sur" -> listOf(
-                Pedido("Pedido #4", "ph_chaqueta", false, null),
-                Pedido("Pedido #5", "ph_accesorio", false, null)
+            "Sur" -> pendientes.addAll(
+                listOf(
+                    Pedido(4, "Chaqueta impermeable", "ph_chaqueta"),
+                    Pedido(5, "Accesorio urbano", "ph_accesorio")
+                )
             )
-            else -> emptyList()
         }
-
-        pedidos.addAll(data)
     }
 
-    // Selecciona un pedido para verlo en detalle
-    fun seleccionarPedido(pedido: Pedido) {
-        pedidoSeleccionado.value = pedido
+    fun recogerPedido(index: Int) {
+        val pedido = pendientes[index]
+        pendientes.removeAt(index)
+        porEntregar.add(pedido)
     }
 
-    // Cierra la vista de detalle
-    fun cerrarDetalle() {
-        pedidoSeleccionado.value = null
-    }
-
-    // Marca un pedido como entregado
-    fun confirmarEntrega(index: Int) {
-        val actual = pedidos[index]
-        pedidos[index] = actual.copy(entregado = true)
-    }
-
-    // Guarda una imagen como evidencia de entrega
     fun guardarEvidencia(index: Int, uri: Uri) {
-        val actual = pedidos[index]
-        pedidos[index] = actual.copy(fotoEvidencia = uri)
+        val actual = porEntregar[index]
+        porEntregar[index] = actual.copy(fotoEvidencia = uri)
     }
 
-    // Marca un pedido como devuelto al almacén
-    fun marcarDevuelto(index: Int) {
-        val actual = pedidos[index]
-        pedidos[index] = actual.copy(devuelto = true)
+    fun confirmarEntrega(index: Int) {
+        porEntregar.removeAt(index)
+    }
+
+    fun marcarDevuelto(index: Int, motivo: String) {
+        val pedido = porEntregar[index]
+        porEntregar.removeAt(index)
+        retornos.add(pedido.copy(devuelto = true, motivoDevolucion = motivo))
     }
 }
 
-// ===============================
-// Data classes de apoyo
-// ===============================
 data class Ruta(
     val nombre: String,
+    val descripcion: String,
     val precio: Int
 )
 
 data class Pedido(
+    val id: Int,
     val nombre: String,
     val imagen: String,
-    val entregado: Boolean,
-    val fotoEvidencia: Uri?,
-    val devuelto: Boolean = false     // <<< NUEVO ESTADO agregado
+    val fotoEvidencia: Uri? = null,
+    val devuelto: Boolean = false,
+    val motivoDevolucion: String = "" // ← nuevo campo
 )
