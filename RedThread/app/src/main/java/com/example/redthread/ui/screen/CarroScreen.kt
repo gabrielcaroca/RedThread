@@ -25,7 +25,7 @@ import java.util.Locale
 @Composable
 fun CarroScreen(
     vm: CartViewModel,
-    onGoCheckout: () -> Unit = {}            // <<< NUEVO: callback para ir al checkout
+    onGoCheckout: () -> Unit = {}
 ) {
     val items by vm.items.collectAsState()
 

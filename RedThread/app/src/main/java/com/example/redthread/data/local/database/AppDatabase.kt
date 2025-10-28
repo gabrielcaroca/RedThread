@@ -47,6 +47,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rutaDao(): RutaDao
     abstract fun addressDao(): AddressDao
 
+
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
