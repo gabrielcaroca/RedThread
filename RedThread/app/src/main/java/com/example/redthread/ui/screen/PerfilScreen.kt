@@ -18,8 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.redthread.data.local.address.AddressEntity
 import com.example.redthread.domain.enums.UserRole
+import com.example.redthread.navigation.Route
 import com.example.redthread.ui.theme.AccentRed
 import com.example.redthread.ui.theme.Black
 import com.example.redthread.ui.theme.TextPrimary
@@ -34,8 +36,10 @@ fun PerfilScreen(
     onLogout: () -> Unit,
     onGoAdmin: () -> Unit,
     onGoDespachador: () -> Unit,
+    navController: NavHostController, // 👈 agregado
     vm: ProfileViewModel = viewModel()
-) {
+)
+ {
     val state by vm.state.collectAsStateWithLifecycle()
 
     var showAddressDialog by remember { mutableStateOf(false) }
@@ -128,11 +132,24 @@ fun PerfilScreen(
                     Spacer(Modifier.height(24.dp))
 
                     // Botón cerrar sesión (siempre accesible por el scroll de la página)
+                    // Botón historial de compras
+                    Button(
+                        onClick = { navController.navigate(Route.HistorialCompras.path) },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Text("Ver historial de compras", color = TextPrimary)
+                    }
+
+// Botón cerrar sesión
                     Button(
                         onClick = onLogout,
                         colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Cerrar sesión", color = TextPrimary) }
+
                 }
             }
         }

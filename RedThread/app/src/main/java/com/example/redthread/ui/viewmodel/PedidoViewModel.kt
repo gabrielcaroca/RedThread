@@ -28,11 +28,10 @@ class PedidoViewModel(app: Application) : AndroidViewModel(app) {
                 total = total,
                 productos = productosSnapshot
             )
-            dao.upsert(p) // sigue disponible para otros usos
+            dao.upsert(p)
         }
     }
 
-    // NUEVO: crear pedido y obtener el ID insertado
     suspend fun createPedidoReturnId(
         usuario: String,
         direccion: String,
@@ -46,5 +45,15 @@ class PedidoViewModel(app: Application) : AndroidViewModel(app) {
             productos = productosSnapshot
         )
         return dao.insertReturningId(p)
+    }
+
+    // ✅ NUEVO: actualizar estado del pedido
+    fun actualizarEstadoPedido(idPedido: Long, nuevoEstado: String) {
+        viewModelScope.launch {
+            val pedido = dao.getById(idPedido)
+            if (pedido != null) {
+                dao.update(pedido.copy(estado = nuevoEstado))
+            }
+        }
     }
 }

@@ -13,6 +13,10 @@ sealed class Route(val path: String) {
     data object Despachador : Route("despachador") // 8
     data object VistaModerador : Route("vista_moderador")
     data object ProductoDetalle : Route("product")
+    data object HistorialCompras : Route("Historial_Compras")
+    data object DetalleCompra : Route("Detalle_Compra")
+
+
 
     data object Forgot : Route("recuperar")
     data object PaymentProcessing : Route("payment-processing?id={id}&total={total}&m={m}")

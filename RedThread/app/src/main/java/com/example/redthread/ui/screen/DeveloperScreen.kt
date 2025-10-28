@@ -437,10 +437,17 @@ private fun ProductoFormulario(
 
 // ------------------------- PEDIDOS -------------------------
 @Composable
-fun DespachosTab(vmPedido: com.example.redthread.ui.viewmodel.PedidoViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-                 vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
-
+fun DespachosTab(
+    vmPedido: com.example.redthread.ui.viewmodel.PedidoViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    // 🔹 Observa todos los pedidos desde el ViewModel
     val pedidos by vmPedido.pedidos.collectAsState()
+
+    // 🔹 Filtra solo los pedidos que están pendientes
+    val pedidosPendientes = pedidos.filter { it.estado == "pendiente" }
+
+    // 🔹 Lista de IDs seleccionados por el usuario
     val seleccionados = remember { mutableStateListOf<Long>() }
 
     Column(
@@ -452,12 +459,21 @@ fun DespachosTab(vmPedido: com.example.redthread.ui.viewmodel.PedidoViewModel = 
 
         Spacer(Modifier.height(8.dp))
 
-        // Botón para crear una ruta
+        // 🔸 Botón para crear una ruta con los pedidos seleccionados
         Button(
             onClick = {
                 if (seleccionados.isNotEmpty()) {
                     val nombreRuta = "Ruta${System.currentTimeMillis() % 1000}"
+
+                    // 1️⃣ Crear la ruta con los pedidos seleccionados
                     vmRuta.crearRuta(nombreRuta, seleccionados)
+
+                    // 2️⃣ Marcar los pedidos como "asignados"
+                    seleccionados.forEach { idPedido ->
+                        vmPedido.actualizarEstadoPedido(idPedido, "asignado")
+                    }
+
+                    // 3️⃣ Limpiar la selección
                     seleccionados.clear()
                 }
             },
@@ -469,11 +485,12 @@ fun DespachosTab(vmPedido: com.example.redthread.ui.viewmodel.PedidoViewModel = 
 
         Spacer(Modifier.height(12.dp))
 
-        if (pedidos.isEmpty()) {
+        // 🔸 Mostrar pedidos pendientes o mensaje vacío
+        if (pedidosPendientes.isEmpty()) {
             Text("No hay pedidos registrados.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(pedidos) { p ->
+                items(pedidosPendientes) { p ->
                     PedidoItem(
                         pedido = p,
                         seleccionado = seleccionados.contains(p.id),
@@ -487,6 +504,7 @@ fun DespachosTab(vmPedido: com.example.redthread.ui.viewmodel.PedidoViewModel = 
         }
     }
 }
+
 
 @Composable
 fun PedidoItem(pedido: com.example.redthread.data.local.pedido.PedidoEntity, seleccionado: Boolean, onSelect: (Boolean) -> Unit) {
@@ -538,9 +556,17 @@ fun UsuariosTab(vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel = andro
 }
 
 @Composable
-fun RutaItem(ruta: com.example.redthread.data.local.ruta.RutaEntity, vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel) {
+fun RutaItem(
+    ruta: com.example.redthread.data.local.ruta.RutaEntity,
+    vmRuta: com.example.redthread.ui.viewmodel.RutaViewModel
+) {
     var activa by remember { mutableStateOf(ruta.activa) }
-    var completada by remember { mutableStateOf(ruta.completada) }
+
+    val pedidosCount = remember(ruta.pedidosIds) {
+        ruta.pedidosIds.split(",")
+            .mapNotNull { it.trim().toLongOrNull() }
+            .size
+    }
 
     Card(
         Modifier.fillMaxWidth(),
@@ -556,30 +582,26 @@ fun RutaItem(ruta: com.example.redthread.data.local.ruta.RutaEntity, vmRuta: com
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Activa")
-                    Switch(checked = activa, onCheckedChange = {
-                        activa = it
-                        vmRuta.actualizarRuta(ruta.copy(activa = it))
-                    })
+                    Switch(
+                        checked = activa,
+                        onCheckedChange = {
+                            activa = it
+                            vmRuta.actualizarRuta(ruta.copy(activa = it))
+                        }
+                    )
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Completada")
-                    Checkbox(checked = completada, onCheckedChange = {
-                        completada = it
-                        vmRuta.actualizarRuta(ruta.copy(completada = it))
-                    })
-                }
-
+                // ✅ Botón de eliminar conservado
                 TextButton(onClick = { vmRuta.eliminarRuta(ruta) }) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)
                 }
             }
 
             Text(
-                text = "Pedidos: ${ruta.pedidosIds}",
+                text = "Pedidos: $pedidosCount",
                 style = MaterialTheme.typography.bodySmall
             )
-
         }
     }
 }
+
